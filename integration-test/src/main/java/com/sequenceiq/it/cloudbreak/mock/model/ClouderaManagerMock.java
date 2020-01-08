@@ -2,6 +2,7 @@ package com.sequenceiq.it.cloudbreak.mock.model;
 
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -473,6 +474,7 @@ public class ClouderaManagerMock extends AbstractModelMock {
                 .hostId(cloudVmMetaDataStatus.getCloudVmInstanceStatus().getCloudInstance().getInstanceId())
                 .hostname(HostNameUtil.generateHostNameByIp(cloudVmMetaDataStatus.getMetaData().getPrivateIp()))
                 .ipAddress(cloudVmMetaDataStatus.getMetaData().getPrivateIp())
+                .lastHeartbeat(Instant.now().toString())
                 .healthSummary(ApiHealthSummary.GOOD);
     }
 }

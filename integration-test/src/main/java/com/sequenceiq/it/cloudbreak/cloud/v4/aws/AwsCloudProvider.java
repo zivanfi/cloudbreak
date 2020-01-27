@@ -356,13 +356,14 @@ public class AwsCloudProvider extends AbstractCloudProvider {
         }
     }
 
-    public String getImageCatalogUrl() {
-        return commonCloudProperties().getImageCatalogUrl();
-    }
-
     @Override
     public void setImageId(String id) {
         awsProperties.getBaseimage().setImageId(id);
+    }
+
+    @Override
+    public String getImageId() {
+        return awsProperties.getBaseimage().getImageId();
     }
 
     @Override

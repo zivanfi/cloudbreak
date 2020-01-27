@@ -209,6 +209,11 @@ public class OpenStackCloudProvider extends AbstractCloudProvider {
     }
 
     @Override
+    public String getImageId() {
+        return openStackProperties.getBaseimage().getImageId();
+    }
+
+    @Override
     public String getPreviousPreWarmedImageID(TestContext testContext, ImageCatalogTestDto imageCatalogTestDto, CloudbreakClient cloudbreakClient) {
         return throwNotImplementedException();
     }

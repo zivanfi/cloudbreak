@@ -230,6 +230,11 @@ public class GcpCloudProvider extends AbstractCloudProvider {
         return notImplementedException();
     }
 
+    @Override
+    public String getImageId() {
+        return gcpProperties.getBaseimage().getImageId();
+    }
+
     private <T> T notImplementedException() {
         throw new NotImplementedException(String.format("Not implemented on %s", getCloudPlatform()));
     }

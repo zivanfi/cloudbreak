@@ -175,6 +175,11 @@ public class YarnCloudProvider extends AbstractCloudProvider {
     }
 
     @Override
+    public String getImageId() {
+        return yarnProperties.getBaseimage().getImageId();
+    }
+
+    @Override
     public String getPreviousPreWarmedImageID(TestContext testContext, ImageCatalogTestDto imageCatalogTestDto, CloudbreakClient cloudbreakClient) {
         return throwNotImplementedException();
     }

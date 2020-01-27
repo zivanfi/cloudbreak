@@ -319,6 +319,11 @@ public class AzureCloudProvider extends AbstractCloudProvider {
         return notImplementedException();
     }
 
+    @Override
+    public String getImageId() {
+        return azureProperties.getBaseimage().getImageId();
+    }
+
     private String notImplementedException() {
         throw new NotImplementedException(String.format("Not implemented on %s", getCloudPlatform()));
     }

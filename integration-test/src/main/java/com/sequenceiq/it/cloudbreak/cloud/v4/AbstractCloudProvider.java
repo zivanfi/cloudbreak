@@ -114,13 +114,18 @@ public abstract class AbstractCloudProvider implements CloudProvider {
     }
 
     @Override
+    public String getImageCatalogName() {
+        return commonCloudProperties().getImageCatalogName();
+    }
+
+    @Override
     public void setImageCatalogUrl(String url) {
         commonCloudProperties().setImageCatalogUrl(url);
     }
 
     @Override
-    public String getImageCatalogName() {
-        return commonCloudProperties().getImageCatalogName();
+    public String getImageCatalogUrl() {
+        return commonCloudProperties().getImageCatalogUrl();
     }
 
     @Override

@@ -10,6 +10,7 @@ import javax.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.testng.annotations.AfterMethod;
 import org.testng.annotations.Test;
 
 import com.sequenceiq.it.cloudbreak.client.ImageCatalogTestClient;
@@ -46,12 +47,21 @@ public class SdxUpgradeTests extends BasicSdxTests {
     private WaitUtil waitUtil;
 
     @Value("sdx-upgrade-test-catalog")
-    private String imageCatalogName;
+    private String customImageCatalogName;
 
     @Value("https://cb-group.s3.eu-central-1.amazonaws.com/test/imagecatalog/sdx-upgrade-test-catalog.json")
-    private String imageCatalogUrl;
+    private String customImageCatalogUrl;
 
     @Value("9a72c4a6-fe05-4b41-62f3-cc0a1ed35df4")
+    private String customImageId;
+
+    @Value("${integrationtest.imageCatalogName:}")
+    private String imageCatalogName;
+
+    @Value("${integrationtest.imageCatalogUrl:}")
+    private String imageCatalogUrl;
+
+    @Value("${integrationtest.aws.baseimage.imageId:}")
     private String imageId;
 
     @Override
@@ -62,9 +72,27 @@ public class SdxUpgradeTests extends BasicSdxTests {
         initializeDefaultBlueprints(testContext);
 
         CloudProvider cloudProvider = testContext.getCloudProvider();
+        cloudProvider.setImageCatalogName(customImageCatalogName);
+        cloudProvider.setImageCatalogUrl(customImageCatalogUrl);
+        cloudProvider.setImageId(customImageId);
+
+        Log.log(LOGGER, format(" Custom image catalog parameters for SDX Upgrade Test - Image Catalog Name: %s | Image Catalog URL: %s | Image ID: %s ",
+                cloudProvider.getImageCatalogName(), cloudProvider.getImageCatalogUrl(), cloudProvider.getImageId()));
+    }
+
+    @Override
+    @AfterMethod(alwaysRun = true)
+    public void tearDown(Object[] data) {
+        TestContext testContext = (TestContext) data[0];
+        testContext.cleanupTestContext();
+
+        CloudProvider cloudProvider = testContext.getCloudProvider();
         cloudProvider.setImageCatalogName(imageCatalogName);
         cloudProvider.setImageCatalogUrl(imageCatalogUrl);
         cloudProvider.setImageId(imageId);
+
+        Log.log(LOGGER, format(" Base image catalog parameters after SDX Upgrade Test - Image Catalog Name: %s | Image Catalog URL: %s | Image ID: %s ",
+                cloudProvider.getImageCatalogName(), cloudProvider.getImageCatalogUrl(), cloudProvider.getImageId()));
     }
 
     @Test(dataProvider = TEST_CONTEXT)

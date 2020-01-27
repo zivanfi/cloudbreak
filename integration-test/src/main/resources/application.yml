@@ -171,6 +171,8 @@ integrationtest:
       volumeSize: 100
       volumeCount: 1
       volumeType: StandardSSD_LRS
+    baseimage:
+      imageId:
     cloudstorage:
       accountKey:
       accountName:
@@ -201,6 +203,8 @@ integrationtest:
       volumeSize: 100
       volumeCount: 1
       volumeType: pd-standard
+    baseimage:
+      imageId:
 
   # openstack parameters
   openstack:
@@ -221,6 +225,8 @@ integrationtest:
       tenant:
       userName:
       password:
+    baseimage:
+      imageId:
 
   # yarn parameters
   yarn:

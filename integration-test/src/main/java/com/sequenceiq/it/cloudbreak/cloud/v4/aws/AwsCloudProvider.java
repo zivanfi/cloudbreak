@@ -292,8 +292,8 @@ public class AwsCloudProvider extends AbstractCloudProvider {
     @Override
     public ImageSettingsTestDto imageSettings(ImageSettingsTestDto imageSettings) {
         return imageSettings
-                .withImageId(awsProperties.getBaseimage().getImageId())
-                .withImageCatalog(commonCloudProperties().getImageCatalogName());
+                .withImageId(getImageId())
+                .withImageCatalog(getImageCatalogName());
     }
 
     @Override

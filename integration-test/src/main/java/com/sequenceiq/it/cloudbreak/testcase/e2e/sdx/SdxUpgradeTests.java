@@ -3,19 +3,20 @@ package com.sequenceiq.it.cloudbreak.testcase.e2e.sdx;
 import static com.sequenceiq.it.cloudbreak.context.RunningParameter.key;
 import static java.lang.String.format;
 
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.inject.Inject;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.testng.annotations.AfterMethod;
 import org.testng.annotations.Test;
 
+import com.sequenceiq.cloudbreak.api.endpoint.v4.stacks.base.InstanceStatus;
 import com.sequenceiq.it.cloudbreak.client.ImageCatalogTestClient;
 import com.sequenceiq.it.cloudbreak.client.SdxTestClient;
-import com.sequenceiq.it.cloudbreak.cloud.v4.CloudProvider;
+import com.sequenceiq.it.cloudbreak.cloud.HostGroupType;
 import com.sequenceiq.it.cloudbreak.cloud.v4.aws.AwsCloudProvider;
 import com.sequenceiq.it.cloudbreak.context.Description;
 import com.sequenceiq.it.cloudbreak.context.TestContext;
@@ -27,12 +28,17 @@ import com.sequenceiq.it.cloudbreak.dto.sdx.SdxInternalTestDto;
 import com.sequenceiq.it.cloudbreak.dto.stack.StackTestDto;
 import com.sequenceiq.it.cloudbreak.exception.TestFailException;
 import com.sequenceiq.it.cloudbreak.log.Log;
-import com.sequenceiq.it.cloudbreak.testcase.e2e.BasicSdxTests;
+import com.sequenceiq.it.cloudbreak.testcase.e2e.AbstractE2ETest;
 import com.sequenceiq.it.cloudbreak.util.wait.WaitUtil;
 import com.sequenceiq.sdx.api.model.SdxClusterStatusResponse;
 
-public class SdxUpgradeTests extends BasicSdxTests {
+public class SdxUpgradeTests extends AbstractE2ETest {
     private static final Logger LOGGER = LoggerFactory.getLogger(SdxUpgradeTests.class);
+
+    private Map<String, InstanceStatus> instancesHealthy = new HashMap<>() {{
+        put(HostGroupType.MASTER.getName(), InstanceStatus.SERVICES_HEALTHY);
+        put(HostGroupType.IDBROKER.getName(), InstanceStatus.SERVICES_HEALTHY);
+    }};
 
     @Inject
     private ImageCatalogTestClient imageCatalogTestClient;
@@ -55,14 +61,8 @@ public class SdxUpgradeTests extends BasicSdxTests {
     @Value("9a72c4a6-fe05-4b41-62f3-cc0a1ed35df4")
     private String customImageId;
 
-    @Value("${integrationtest.imageCatalogName:}")
-    private String imageCatalogName;
-
-    @Value("${integrationtest.imageCatalogUrl:}")
-    private String imageCatalogUrl;
-
-    @Value("${integrationtest.aws.baseimage.imageId:}")
-    private String imageId;
+    @Value("redhat7")
+    private String customOsType;
 
     @Override
     protected void setupTest(TestContext testContext) {
@@ -70,29 +70,6 @@ public class SdxUpgradeTests extends BasicSdxTests {
         createDefaultCredential(testContext);
         createEnvironmentForSdx(testContext);
         initializeDefaultBlueprints(testContext);
-
-        CloudProvider cloudProvider = testContext.getCloudProvider();
-        cloudProvider.setImageCatalogName(customImageCatalogName);
-        cloudProvider.setImageCatalogUrl(customImageCatalogUrl);
-        cloudProvider.setImageId(customImageId);
-
-        Log.log(LOGGER, format(" Custom image catalog parameters for SDX Upgrade Test - Image Catalog Name: %s | Image Catalog URL: %s | Image ID: %s ",
-                cloudProvider.getImageCatalogName(), cloudProvider.getImageCatalogUrl(), cloudProvider.getImageId()));
-    }
-
-    @Override
-    @AfterMethod(alwaysRun = true)
-    public void tearDown(Object[] data) {
-        TestContext testContext = (TestContext) data[0];
-        testContext.cleanupTestContext();
-
-        CloudProvider cloudProvider = testContext.getCloudProvider();
-        cloudProvider.setImageCatalogName(imageCatalogName);
-        cloudProvider.setImageCatalogUrl(imageCatalogUrl);
-        cloudProvider.setImageId(imageId);
-
-        Log.log(LOGGER, format(" Base image catalog parameters after SDX Upgrade Test - Image Catalog Name: %s | Image Catalog URL: %s | Image ID: %s ",
-                cloudProvider.getImageCatalogName(), cloudProvider.getImageCatalogUrl(), cloudProvider.getImageId()));
     }
 
     @Test(dataProvider = TEST_CONTEXT)
@@ -107,17 +84,12 @@ public class SdxUpgradeTests extends BasicSdxTests {
         String clouderaManager = resourcePropertyProvider().getName();
         String imageSettings = resourcePropertyProvider().getName();
         String stack = resourcePropertyProvider().getName();
-        AtomicReference<String> selectedImageID = new AtomicReference<>();
 
         testContext
-                .given(awsCloudProvider.getImageCatalogName(), ImageCatalogTestDto.class)
-                .withName(awsCloudProvider.getImageCatalogName()).withUrl(awsCloudProvider.getImageCatalogUrl())
-                .when(imageCatalogTestClient.createV4(), key(awsCloudProvider.getImageCatalogName()))
-                .when((tc, dto, client) -> {
-                    selectedImageID.set(testContext.getCloudProvider().getPreviousPreWarmedImageID(tc, dto, client));
-                    return dto;
-                })
+                .given(customImageCatalogName, ImageCatalogTestDto.class).withName(customImageCatalogName).withUrl(customImageCatalogUrl)
+                .when(imageCatalogTestClient.createV4(), key(customImageCatalogName))
                 .given(imageSettings, ImageSettingsTestDto.class)
+                .withName(imageSettings).withImageCatalog(customImageCatalogName).withImageId(customImageId).withOs(customOsType)
                 .given(clouderaManager, ClouderaManagerTestDto.class)
                 .given(cluster, ClusterTestDto.class).withClouderaManager(clouderaManager)
                 .given(stack, StackTestDto.class).withCluster(cluster).withImageSettings(imageSettings)
@@ -143,12 +115,18 @@ public class SdxUpgradeTests extends BasicSdxTests {
                     Log.log(LOGGER, format(" Image Catalog URL: %s ", dto.getResponse().getStackV4Response().getImage().getCatalogUrl()));
                     Log.log(LOGGER, format(" Image ID after SDX Upgrade: %s ", dto.getResponse().getStackV4Response().getImage().getId()));
 
-                    if (dto.getResponse().getStackV4Response().getImage().getId().equals(selectedImageID.get())) {
-                        throw new TestFailException(" The selected image ID is: " + dto.getResponse().getStackV4Response().getImage().getId() + " instead of: "
-                                + selectedImageID.get());
+                    if (dto.getResponse().getStackV4Response().getImage().getId().equals(customImageId)) {
+                        throw new TestFailException(" SDX Image Update was not successful because of the actual and the previous Image IDs are same: "
+                                + dto.getResponse().getStackV4Response().getImage().getId() + " = "
+                                + customImageId);
                     }
                     return dto;
                 })
                 .validate();
     }
+
+    protected Map<String, InstanceStatus> getSdxInstancesHealthyState() {
+        return instancesHealthy;
+    }
+
 }

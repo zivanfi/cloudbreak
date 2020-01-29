@@ -26,6 +26,7 @@ import com.sequenceiq.cloudbreak.api.endpoint.v4.stacks.request.authentication.S
 import com.sequenceiq.cloudbreak.api.endpoint.v4.stacks.request.cluster.ClusterV4Request;
 import com.sequenceiq.cloudbreak.api.endpoint.v4.stacks.request.cluster.sharedservice.SharedServiceV4Request;
 import com.sequenceiq.cloudbreak.api.endpoint.v4.stacks.request.customdomain.CustomDomainSettingsV4Request;
+import com.sequenceiq.cloudbreak.api.endpoint.v4.stacks.request.image.ImageSettingsV4Request;
 import com.sequenceiq.cloudbreak.api.endpoint.v4.stacks.request.instancegroup.InstanceGroupV4Request;
 import com.sequenceiq.cloudbreak.api.endpoint.v4.stacks.request.tags.TagsV4Request;
 import com.sequenceiq.cloudbreak.api.endpoint.v4.stacks.response.StackV4Response;
@@ -174,6 +175,11 @@ public abstract class StackTestDtoBase<T extends StackTestDtoBase<T>> extends Ab
 
     public StackTestDtoBase<T> withClusterRequest(ClusterV4Request clusterRequest) {
         getRequest().setCluster(clusterRequest);
+        return this;
+    }
+
+    public StackTestDtoBase<T> withImageSettings(ImageSettingsV4Request imageSettings) {
+        getRequest().setImage(imageSettings);
         return this;
     }
 

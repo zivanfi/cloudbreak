@@ -217,7 +217,9 @@ public class GcpCloudProvider extends AbstractCloudProvider {
 
     @Override
     public ImageSettingsTestDto imageSettings(ImageSettingsTestDto imageSettings) {
-        return imageSettings.withImageCatalog(commonCloudProperties().getImageCatalogName());
+        return imageSettings
+                .withImageId(getImageId())
+                .withImageCatalog(getImageCatalogName());
     }
 
     @Override

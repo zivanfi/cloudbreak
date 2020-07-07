@@ -1,5 +1,6 @@
 package com.sequenceiq.cloudbreak.api.model.imagecatalog;
 
+import static com.sequenceiq.cloudbreak.validation.HttpContentSizeValidator.MAX_IN_BYTES;
 import static com.sequenceiq.cloudbreak.validation.ImageCatalogValidator.FAILED_TO_GET_WITH_EXCEPTION;
 import static com.sequenceiq.cloudbreak.validation.ImageCatalogValidator.INVALID_JSON_IN_RESPONSE;
 import static com.sequenceiq.cloudbreak.validation.ImageCatalogValidator.INVALID_JSON_STRUCTURE_IN_RESPONSE;
@@ -7,16 +8,16 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.validation.Configuration;
 import javax.validation.ConstraintValidatorContext;
+import javax.validation.ConstraintValidatorContext.ConstraintViolationBuilder;
+import javax.validation.ConstraintValidatorContext.ConstraintViolationBuilder.NodeBuilderCustomizableContext;
 import javax.validation.ConstraintViolation;
 import javax.validation.Validation;
 import javax.validation.Validator;
@@ -31,12 +32,12 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.springframework.util.ReflectionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.sequenceiq.cloudbreak.api.endpoint.v4.imagecatalog.base.ImageCatalogV4Base;
 import com.sequenceiq.cloudbreak.api.helper.HttpHelper;
 import com.sequenceiq.cloudbreak.validation.HttpContentSizeValidator;
-import com.sequenceiq.cloudbreak.validation.ImageCatalogValidator;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ImageCatalogV4BaseTest {
@@ -45,8 +46,16 @@ public class ImageCatalogV4BaseTest {
 
     private static final String INVALID_MESSAGE = "A valid image catalog must be available on the given URL";
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(ImageCatalogV4BaseTest.class);
+
     @Mock
     private StatusType statusType;
+
+    private ConstraintValidatorContext constraintValidatorContext;
+
+    private ConstraintViolationBuilder constraintViolationBuilder;
+
+    private NodeBuilderCustomizableContext nodeBuilderCustomizableContext;
 
     @Mock
     private HttpHelper httpHelper;
@@ -57,31 +66,35 @@ public class ImageCatalogV4BaseTest {
     private Validator validator;
 
     @Before
-    public void setUp() throws NoSuchFieldException, IllegalAccessException {
+    public void setUp() {
         Configuration<?> cfg = Validation.byDefaultProvider().configure();
         cfg.messageInterpolator(new ParameterMessageInterpolator());
         validator = cfg.buildValidatorFactory().getValidator();
 
-        for (Entry<String, Object> entry : Map.of("HTTP_CONTENT_SIZE_VALIDATOR", httpContentSizeValidator, "HTTP_HELPER", httpHelper).entrySet()) {
-            Field field = ReflectionUtils.findField(ImageCatalogValidator.class, entry.getKey());
-            field.setAccessible(true);
-            Field modifiersField = Field.class.getDeclaredField("modifiers");
-            modifiersField.setAccessible(true);
-            modifiersField.setInt(field, field.getModifiers() & ~Modifier.FINAL);
-            field.set(null, entry.getValue());
-        }
+        constraintViolationBuilder = mock(ConstraintValidatorContext.ConstraintViolationBuilder.class);
+        nodeBuilderCustomizableContext = mock(ConstraintValidatorContext.ConstraintViolationBuilder.NodeBuilderCustomizableContext.class);
+        constraintValidatorContext = mock(ConstraintValidatorContext.class);
 
-        when(httpContentSizeValidator.isValid(anyString(), any(ConstraintValidatorContext.class))).thenReturn(true);
+        when(constraintValidatorContext.buildConstraintViolationWithTemplate(anyString())).thenReturn(constraintViolationBuilder);
+        when(constraintViolationBuilder.addPropertyNode(anyString())).thenReturn(nodeBuilderCustomizableContext);
+        when(nodeBuilderCustomizableContext.addConstraintViolation()).thenReturn(constraintValidatorContext);
+
         when(statusType.getFamily()).thenReturn(Family.SUCCESSFUL);
+        when(httpContentSizeValidator.isValid(anyString(), any(ConstraintValidatorContext.class))).thenReturn(true);
+        when(httpHelper.getContentLength(anyString())).thenReturn(new ImmutablePair<>(statusType, MAX_IN_BYTES));
     }
 
     @Test
     public void testContentNotAvailable() {
         String url = "http://protocol.com";
         String reasonPhrase = "Invalid reason phrase";
+        String failedToGetMessage = String.format(FAILED_TO_GET_BY_FAMILY_TYPE, url, reasonPhrase);
+        AtomicBoolean returnValue = new AtomicBoolean(false);
+
         when(statusType.getFamily()).thenReturn(Family.OTHER);
         when(statusType.getReasonPhrase()).thenReturn(reasonPhrase);
-        when(httpHelper.getContent(anyString())).thenReturn(new ImmutablePair<>(statusType, ""));
+        when(httpHelper.getContent(anyString())).thenReturn(new ImmutablePair<>(statusType, reasonPhrase));
+        when(constraintValidatorContext.buildConstraintViolationWithTemplate(failedToGetMessage)).thenReturn(constraintViolationBuilder);
 
         ImageCatalogV4Base i = new ImageCatalogV4Base();
         i.setName("testname");
@@ -90,13 +103,29 @@ public class ImageCatalogV4BaseTest {
         Set<ConstraintViolation<ImageCatalogV4Base>> violations = validator.validate(i);
 
         assertEquals(2L, violations.size());
-        String failedToGetMessage = String.format(FAILED_TO_GET_BY_FAMILY_TYPE, url, reasonPhrase);
-        assertTrue(violations.stream().allMatch(cv -> cv.getMessage().equals(INVALID_MESSAGE) || cv.getMessage().equals(failedToGetMessage)));
+        assertTrue(violations.stream().allMatch(cv -> {
+            if (cv.getMessage().equals(INVALID_MESSAGE)) {
+                returnValue.set(true);
+            } else {
+                LOGGER.info("Assertion is failing, because of actual message is '{}'", cv.getMessage());
+                LOGGER.info("Expected message {}", INVALID_MESSAGE);
+            }
+            if (cv.getMessage().equals(failedToGetMessage)) {
+                returnValue.set(true);
+            } else {
+                LOGGER.info("Assertion is failing, because of actual message is '{}'", cv.getMessage());
+                LOGGER.info("Expected message {}", failedToGetMessage);
+            }
+            return returnValue.get();
+        }));
     }
 
     @Test
     public void testContentStructureNotValid() {
-        when(httpHelper.getContent(anyString())).thenReturn(new ImmutablePair<>(statusType, "{}"));
+        AtomicBoolean returnValue = new AtomicBoolean(false);
+
+        when(statusType.getFamily()).thenReturn(Family.OTHER);
+        when(constraintValidatorContext.buildConstraintViolationWithTemplate(INVALID_JSON_STRUCTURE_IN_RESPONSE)).thenReturn(constraintViolationBuilder);
 
         ImageCatalogV4Base i = new ImageCatalogV4Base();
         i.setName("testname");
@@ -105,12 +134,27 @@ public class ImageCatalogV4BaseTest {
         Set<ConstraintViolation<ImageCatalogV4Base>> violations = validator.validate(i);
 
         assertEquals(2L, violations.size());
-        assertTrue(violations.stream().allMatch(cv -> cv.getMessage().equals(INVALID_MESSAGE) || cv.getMessage().equals(INVALID_JSON_STRUCTURE_IN_RESPONSE)));
+        assertTrue(violations.stream().allMatch(cv -> {
+            if (cv.getMessage().equals(INVALID_MESSAGE)) {
+                returnValue.set(true);
+            } else {
+                LOGGER.info("Assertion is failing, because of actual message is '{}'", cv.getMessage());
+                LOGGER.info("Expected message {}", INVALID_MESSAGE);
+            }
+            if (cv.getMessage().equals(INVALID_JSON_STRUCTURE_IN_RESPONSE)) {
+                returnValue.set(true);
+            } else {
+                LOGGER.info("Assertion is failing, because of actual message is '{}'", cv.getMessage());
+                LOGGER.info("Expected message {}", INVALID_JSON_STRUCTURE_IN_RESPONSE);
+            }
+            return returnValue.get();
+        }));
     }
 
     @Test
     public void testContentNotAValidJSON() {
         when(httpHelper.getContent(anyString())).thenReturn(new ImmutablePair<>(statusType, "{[]}"));
+        when(constraintValidatorContext.buildConstraintViolationWithTemplate(INVALID_JSON_IN_RESPONSE)).thenReturn(constraintViolationBuilder);
 
         ImageCatalogV4Base i = new ImageCatalogV4Base();
         i.setName("testname");
@@ -119,7 +163,10 @@ public class ImageCatalogV4BaseTest {
         Set<ConstraintViolation<ImageCatalogV4Base>> violations = validator.validate(i);
 
         assertEquals(2L, violations.size());
-        assertTrue(violations.stream().allMatch(cv -> cv.getMessage().equals(INVALID_MESSAGE) || cv.getMessage().equals(INVALID_JSON_IN_RESPONSE)));
+        assertTrue(violations.stream().allMatch(cv -> {
+            LOGGER.info("Assertion is failing, because of {}", cv.getMessage());
+            return cv.getMessage().equals(INVALID_MESSAGE) || cv.getMessage().equals(INVALID_JSON_IN_RESPONSE);
+        }));
     }
 
     @Test
@@ -134,12 +181,16 @@ public class ImageCatalogV4BaseTest {
 
         assertEquals(2L, violations.size());
         String failsWithExceptionMessage = String.format(FAILED_TO_GET_WITH_EXCEPTION, i.getUrl());
-        assertTrue(violations.stream().allMatch(cv -> cv.getMessage().equals(INVALID_MESSAGE) || cv.getMessage().equals(failsWithExceptionMessage)));
+        when(constraintValidatorContext.buildConstraintViolationWithTemplate(failsWithExceptionMessage)).thenReturn(constraintViolationBuilder);
+        assertTrue(violations.stream().allMatch(cv -> {
+            LOGGER.info("Assertion is failing, because of {}", cv.getMessage());
+            return cv.getMessage().equals(INVALID_MESSAGE) || cv.getMessage().equals(failsWithExceptionMessage);
+        }));
     }
 
     @Test
     public void testWhenContentIsTooBig() {
-        when(httpContentSizeValidator.isValid(anyString(), any(ConstraintValidatorContext.class))).thenReturn(false);
+        when(constraintValidatorContext.buildConstraintViolationWithTemplate(INVALID_MESSAGE)).thenReturn(constraintViolationBuilder);
 
         ImageCatalogV4Base i = new ImageCatalogV4Base();
         i.setName("testname");

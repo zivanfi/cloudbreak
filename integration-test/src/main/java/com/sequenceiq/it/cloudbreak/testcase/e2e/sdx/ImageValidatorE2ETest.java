@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.ITestResult;
 import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeMethod;
 import org.testng.util.Strings;
 
 import com.sequenceiq.it.cloudbreak.context.TestContext;
@@ -26,6 +27,19 @@ public abstract class ImageValidatorE2ETest extends AbstractE2ETest {
         createDefaultCredential(testContext);
         initializeDefaultBlueprints(testContext);
         createEnvironmentWithNetworkAndFreeIpa(testContext);
+    }
+
+    @BeforeMethod
+    public void createSourceCatalogIfNotExistsAndValidateDefaultImage(Object[] data) {
+        TestContext testContext = (TestContext) data[0];
+        createImageValidationSourceCatalog(testContext,
+                commonCloudProperties().getImageValidation().getSourceCatalogUrl(),
+                commonCloudProperties().getImageValidation().getSourceCatalogName());
+
+        String imageUuid = commonCloudProperties().getImageValidation().getExpectedDefaultImageUuid();
+        if (Strings.isNotNullAndNotEmpty(imageUuid)) {
+            validateDefaultImage(testContext, imageUuid);
+        }
     }
 
     @AfterMethod

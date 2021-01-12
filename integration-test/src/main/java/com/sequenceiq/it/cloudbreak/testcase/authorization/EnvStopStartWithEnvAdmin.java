@@ -12,7 +12,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.sequenceiq.authorization.info.model.RightV4;
 import com.sequenceiq.environment.api.v1.environment.model.response.EnvironmentStatus;
-import com.sequenceiq.it.cloudbreak.actor.Actor;
+import com.sequenceiq.it.cloudbreak.actor.CloudbreakActor;
 import com.sequenceiq.it.cloudbreak.assertion.util.CheckResourceRightFalseAssertion;
 import com.sequenceiq.it.cloudbreak.assertion.util.CheckResourceRightTrueAssertion;
 import com.sequenceiq.it.cloudbreak.client.CredentialTestClient;
@@ -50,6 +50,9 @@ public class EnvStopStartWithEnvAdmin extends AbstractIntegrationTest {
     @Inject
     private RecipeTestClient recipeTestClient;
 
+    @Inject
+    private CloudbreakActor cloudbreakActor;
+
     @Override
     protected void setupTest(TestContext testContext) {
 
@@ -79,12 +82,12 @@ public class EnvStopStartWithEnvAdmin extends AbstractIntegrationTest {
                 .await(EnvironmentStatus.AVAILABLE)
 
                 // testing unauthorized calls for environment
-                .when(environmentTestClient.describe(), RunningParameter.who(Actor.useRealUmsUser(AuthUserKeys.ENV_CREATOR_B)))
+                .when(environmentTestClient.describe(), RunningParameter.who(cloudbreakActor.useRealUmsUser(AuthUserKeys.ENV_CREATOR_B)))
                 .expect(ForbiddenException.class,
                         RunningParameter.expectedMessage("Doesn't have 'environments/describeEnvironment' right on 'environment' " +
                                 environmentPattern(testContext))
                                 .withKey("EnvironmentGetAction"))
-                .when(environmentTestClient.describe(), RunningParameter.who(Actor.useRealUmsUser(AuthUserKeys.ZERO_RIGHTS)))
+                .when(environmentTestClient.describe(), RunningParameter.who(cloudbreakActor.useRealUmsUser(AuthUserKeys.ZERO_RIGHTS)))
                 .expect(ForbiddenException.class,
                         RunningParameter.expectedMessage("Doesn't have 'environments/describeEnvironment' right on 'environment' " +
                                 environmentPattern(testContext))
@@ -103,14 +106,14 @@ public class EnvStopStartWithEnvAdmin extends AbstractIntegrationTest {
                 .when(environmentTestClient.assignResourceRole(AuthUserKeys.ENV_ADMIN_A))
                 .given(EnvironmentTestDto.class)
                 .given(DistroXTestDto.class)
-                .when(distroXClient.create(), RunningParameter.who(Actor.useRealUmsUser(AuthUserKeys.ENV_CREATOR_B)))
-                .await(STACK_AVAILABLE, RunningParameter.who(Actor.useRealUmsUser(AuthUserKeys.ACCOUNT_ADMIN)))
+                .when(distroXClient.create(), RunningParameter.who(cloudbreakActor.useRealUmsUser(AuthUserKeys.ENV_CREATOR_B)))
+                .await(STACK_AVAILABLE, RunningParameter.who(cloudbreakActor.useRealUmsUser(AuthUserKeys.ACCOUNT_ADMIN)))
                 .given(EnvironmentTestDto.class)
-                .when(environmentTestClient.stop(), RunningParameter.who(Actor.useRealUmsUser(AuthUserKeys.ENV_ADMIN_A)))
-                .await(EnvironmentStatus.ENV_STOPPED, RunningParameter.who(Actor.useRealUmsUser(AuthUserKeys.ENV_ADMIN_A)))
+                .when(environmentTestClient.stop(), RunningParameter.who(cloudbreakActor.useRealUmsUser(AuthUserKeys.ENV_ADMIN_A)))
+                .await(EnvironmentStatus.ENV_STOPPED, RunningParameter.who(cloudbreakActor.useRealUmsUser(AuthUserKeys.ENV_ADMIN_A)))
                 .given(EnvironmentTestDto.class)
-                .when(environmentTestClient.start(), RunningParameter.who(Actor.useRealUmsUser(AuthUserKeys.ENV_ADMIN_A)))
-                .await(EnvironmentStatus.AVAILABLE, RunningParameter.who(Actor.useRealUmsUser(AuthUserKeys.ENV_ADMIN_A)))
+                .when(environmentTestClient.start(), RunningParameter.who(cloudbreakActor.useRealUmsUser(AuthUserKeys.ENV_ADMIN_A)))
+                .await(EnvironmentStatus.AVAILABLE, RunningParameter.who(cloudbreakActor.useRealUmsUser(AuthUserKeys.ENV_ADMIN_A)))
                 .validate();
 
         testCheckRightUtil(testContext, testContext.given(DistroXTestDto.class).getCrn());

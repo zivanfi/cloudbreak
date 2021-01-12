@@ -41,7 +41,7 @@ import com.sequenceiq.it.cloudbreak.RedbeamsClient;
 import com.sequenceiq.it.cloudbreak.SdxClient;
 import com.sequenceiq.it.cloudbreak.UmsClient;
 import com.sequenceiq.it.cloudbreak.action.Action;
-import com.sequenceiq.it.cloudbreak.actor.Actor;
+import com.sequenceiq.it.cloudbreak.actor.CloudbreakActor;
 import com.sequenceiq.it.cloudbreak.actor.CloudbreakUser;
 import com.sequenceiq.it.cloudbreak.actor.CloudbreakUserCache;
 import com.sequenceiq.it.cloudbreak.assertion.Assertion;
@@ -135,11 +135,16 @@ public abstract class TestContext implements ApplicationContextAware {
     @Inject
     private Tracer tracer;
 
+    @Inject
+    private CloudbreakUserCache cloudbreakUserCache;
+
     private boolean validated;
 
     private boolean initialized;
 
     private CloudbreakUser actingUser;
+
+    private CloudbreakActor cloudbreakActor;
 
     public Duration getPollingDurationInMills() {
         return Duration.of(pollingInterval, ChronoUnit.MILLIS);
@@ -293,26 +298,27 @@ public abstract class TestContext implements ApplicationContextAware {
     }
 
     public TestContext as() {
-        return as(Actor::defaultUser);
+        return as(new CloudbreakActor(testParameter).defaultUser());
     }
 
-    public TestContext as(Actor actor) {
+    public TestContext as(CloudbreakUser cloudbreakUser) {
         checkShutdown();
-        CloudbreakUser acting = actor.acting(testParameter);
-        Log.as(LOGGER, acting.toString());
-        setActingUser(acting);
-        if (clients.get(acting.getAccessKey()) == null) {
-            CloudbreakClient cloudbreakClient = CloudbreakClient.createProxyCloudbreakClient(testParameter, acting);
-            FreeIpaClient freeIpaClient = FreeIpaClient.createProxyFreeIpaClient(testParameter, acting);
-            EnvironmentClient environmentClient = EnvironmentClient.createProxyEnvironmentClient(testParameter, acting);
-            SdxClient sdxClient = SdxClient.createProxySdxClient(testParameter, acting);
+        LOGGER.info(" Acting user \ndisplay name: {} \naccess key: {} \nsecret key: {} \ncrn: {} \nadmin: {} ", cloudbreakUser.getDisplayName(),
+                cloudbreakUser.getAccessKey(), cloudbreakUser.getSecretKey(), cloudbreakUser.getCrn(), cloudbreakUser.getAdmin());
+        Log.as(LOGGER, cloudbreakUser.toString());
+        setActingUser(cloudbreakUser);
+        if (clients.get(cloudbreakUser.getAccessKey()) == null) {
+            CloudbreakClient cloudbreakClient = CloudbreakClient.createProxyCloudbreakClient(testParameter, cloudbreakUser);
+            FreeIpaClient freeIpaClient = FreeIpaClient.createProxyFreeIpaClient(testParameter, cloudbreakUser);
+            EnvironmentClient environmentClient = EnvironmentClient.createProxyEnvironmentClient(testParameter, cloudbreakUser);
+            SdxClient sdxClient = SdxClient.createProxySdxClient(testParameter, cloudbreakUser);
             UmsClient umsClient = UmsClient.createProxyUmsClient(tracer);
-            RedbeamsClient redbeamsClient = RedbeamsClient.createProxyRedbeamsClient(testParameter, acting);
+            RedbeamsClient redbeamsClient = RedbeamsClient.createProxyRedbeamsClient(testParameter, cloudbreakUser);
             Map<Class<? extends MicroserviceClient>, MicroserviceClient> clientMap = Map.of(CloudbreakClient.class, cloudbreakClient,
                     FreeIpaClient.class, freeIpaClient, EnvironmentClient.class, environmentClient, SdxClient.class, sdxClient,
                     RedbeamsClient.class, redbeamsClient,
                     UmsClient.class, umsClient);
-            clients.put(acting.getAccessKey(), clientMap);
+            clients.put(cloudbreakUser.getAccessKey(), clientMap);
             cloudbreakClient.setWorkspaceId(0L);
             redbeamsClient.setEnvironmentCrn(Crn.builder(CrnResourceDescriptor.ENVIRONMENT)
                     .setAccountId("it")
@@ -323,7 +329,7 @@ public abstract class TestContext implements ApplicationContextAware {
     }
 
     private CloudbreakUser createInternalActorForAccountIfNotExists(String tenantName) {
-        CloudbreakUser internalUser = Actor.create(tenantName, "__internal__actor__").acting(testParameter);
+        CloudbreakUser internalUser = new CloudbreakActor(testParameter).create(tenantName, "__internal__actor__");
         if (clients.get(internalUser.getAccessKey()) == null) {
             CloudbreakClient cloudbreakClient = CloudbreakClient.createProxyCloudbreakClient(testParameter, internalUser);
             FreeIpaClient freeIpaClient = FreeIpaClient.createProxyFreeIpaClient(testParameter, internalUser);
@@ -657,8 +663,8 @@ public abstract class TestContext implements ApplicationContextAware {
 
     public <U extends MicroserviceClient> U getAdminMicroserviceClient(Class<? extends CloudbreakTestDto> testDtoClass, String accountId) {
         String accessKey;
-        if (CloudbreakUserCache.getInstance().isInitialized()) {
-            accessKey = CloudbreakUserCache.getInstance().getAdminAccessKeyByAccountId(accountId);
+        if (cloudbreakUserCache.isInitialized()) {
+            accessKey = cloudbreakUserCache.getAdminAccessKeyByAccountId(accountId);
         } else {
             CloudbreakUser internalActorForAccount = createInternalActorForAccountIfNotExists(accountId);
             accessKey = internalActorForAccount.getAccessKey();
@@ -883,12 +889,12 @@ public abstract class TestContext implements ApplicationContextAware {
     }
 
     public CloudbreakUser getWho(RunningParameter runningParameter) {
-        Actor actor = runningParameter.getWho();
+        CloudbreakUser actor = runningParameter.getWho();
         if (actor == null) {
             LOGGER.info("Run with acting user. {}", getActingUser());
             return getActingUser();
         } else {
-            CloudbreakUser who = actor.acting(testParameter);
+            CloudbreakUser who = cloudbreakActor.defaultUser();
             LOGGER.info("Run with given user. {}", who);
             return who;
         }

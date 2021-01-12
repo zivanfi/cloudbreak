@@ -10,7 +10,6 @@ import com.sequenceiq.cloudbreak.common.mappable.CloudPlatform;
 import com.sequenceiq.it.cloudbreak.MicroserviceClient;
 import com.sequenceiq.it.cloudbreak.SdxClient;
 import com.sequenceiq.it.cloudbreak.action.Action;
-import com.sequenceiq.it.cloudbreak.actor.Actor;
 import com.sequenceiq.it.cloudbreak.actor.CloudbreakUser;
 import com.sequenceiq.it.cloudbreak.assertion.Assertion;
 import com.sequenceiq.it.cloudbreak.cloud.v4.CloudProviderProxy;
@@ -42,7 +41,7 @@ public class MeasuredTestContext extends MockedTestContext {
     }
 
     @Override
-    public TestContext as(Actor actor) {
+    public TestContext as(CloudbreakUser actor) {
         wrappedTestContext.as(actor);
         return this;
     }

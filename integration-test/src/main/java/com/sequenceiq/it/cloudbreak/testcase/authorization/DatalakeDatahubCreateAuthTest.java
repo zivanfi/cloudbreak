@@ -8,7 +8,7 @@ import javax.ws.rs.ForbiddenException;
 import org.testng.annotations.Test;
 
 import com.sequenceiq.environment.api.v1.environment.model.response.EnvironmentStatus;
-import com.sequenceiq.it.cloudbreak.actor.Actor;
+import com.sequenceiq.it.cloudbreak.actor.CloudbreakActor;
 import com.sequenceiq.it.cloudbreak.client.CredentialTestClient;
 import com.sequenceiq.it.cloudbreak.client.EnvironmentTestClient;
 import com.sequenceiq.it.cloudbreak.client.SdxTestClient;
@@ -37,6 +37,9 @@ public class DatalakeDatahubCreateAuthTest extends AbstractIntegrationTest {
 
     @Inject
     private SdxTestClient sdxTestClient;
+
+    @Inject
+    private CloudbreakActor cloudbreakActor;
 
     @Override
     protected void setupTest(TestContext testContext) {
@@ -79,9 +82,9 @@ public class DatalakeDatahubCreateAuthTest extends AbstractIntegrationTest {
                 .withStackRequest(key(cluster), key(stack))
                 .when(sdxTestClient.createInternal(), key(sdxInternal))
                 .await(SdxClusterStatusResponse.RUNNING)
-                .when(sdxTestClient.detailedDescribeInternal(), RunningParameter.who(Actor.useRealUmsUser(AuthUserKeys.ENV_CREATOR_A)))
-                .when(sdxTestClient.detailedDescribeInternal(), RunningParameter.who(Actor.useRealUmsUser(AuthUserKeys.ENV_CREATOR_B)))
-                .when(sdxTestClient.detailedDescribeInternal(), RunningParameter.who(Actor.useRealUmsUser(AuthUserKeys.ZERO_RIGHTS)))
+                .when(sdxTestClient.detailedDescribeInternal(), RunningParameter.who(cloudbreakActor.useRealUmsUser(AuthUserKeys.ENV_CREATOR_A)))
+                .when(sdxTestClient.detailedDescribeInternal(), RunningParameter.who(cloudbreakActor.useRealUmsUser(AuthUserKeys.ENV_CREATOR_B)))
+                .when(sdxTestClient.detailedDescribeInternal(), RunningParameter.who(cloudbreakActor.useRealUmsUser(AuthUserKeys.ZERO_RIGHTS)))
                 .expect(ForbiddenException.class,
                         RunningParameter.expectedMessage("Doesn't have 'datalake/describeDetailedDatalake' right on any of the " +
                                 "'environment'[(]-s[)] [\\[]crn='crn:cdp:environments:us-west-1:.*:environment:.*[]]" +
@@ -90,7 +93,7 @@ public class DatalakeDatahubCreateAuthTest extends AbstractIntegrationTest {
                                 .withKey("SdxDetailedDescribeInternalAction"))
                 .given(RenewDatalakeCertificateTestDto.class)
                 .withStackCrn(testContext.get(sdxInternal).getCrn())
-                .when(sdxTestClient.renewDatalakeCertificateV4(), RunningParameter.who(Actor.useRealUmsUser(AuthUserKeys.ZERO_RIGHTS)))
+                .when(sdxTestClient.renewDatalakeCertificateV4(), RunningParameter.who(cloudbreakActor.useRealUmsUser(AuthUserKeys.ZERO_RIGHTS)))
                 .expect(ForbiddenException.class,
                         RunningParameter.expectedMessage("Doesn't have 'datalake/repairDatalake' right on any of the " +
                                 "'environment'[(]-s[)] [\\[]crn='crn:cdp:environments:us-west-1:.*:environment:.*[]]" +

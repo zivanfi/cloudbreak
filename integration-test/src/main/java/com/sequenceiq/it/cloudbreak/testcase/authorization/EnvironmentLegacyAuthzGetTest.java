@@ -6,7 +6,7 @@ import org.testng.annotations.Test;
 
 import com.sequenceiq.environment.api.v1.environment.model.response.EnvironmentStatus;
 import com.sequenceiq.freeipa.api.v1.freeipa.stack.model.common.Status;
-import com.sequenceiq.it.cloudbreak.actor.Actor;
+import com.sequenceiq.it.cloudbreak.actor.CloudbreakActor;
 import com.sequenceiq.it.cloudbreak.client.CredentialTestClient;
 import com.sequenceiq.it.cloudbreak.client.EnvironmentTestClient;
 import com.sequenceiq.it.cloudbreak.client.FreeIpaTestClient;
@@ -29,6 +29,9 @@ public class EnvironmentLegacyAuthzGetTest extends AbstractMockTest {
     @Inject
     private FreeIpaTestClient freeIpaTestClient;
 
+    @Inject
+    private CloudbreakActor cloudbreakActor;
+
     @Override
     protected void setupTest(TestContext testContext) {
         useRealUmsUser(testContext, AuthUserKeys.LEGACY_NON_POWER);
@@ -45,15 +48,15 @@ public class EnvironmentLegacyAuthzGetTest extends AbstractMockTest {
         useRealUmsUser(testContext, AuthUserKeys.LEGACY_NON_POWER);
         testContext
                 .given(CredentialTestDto.class)
-                .when(credentialTestClient.create(), RunningParameter.who(Actor.useRealUmsUser(AuthUserKeys.LEGACY_ACC_ENV_ADMIN)))
+                .when(credentialTestClient.create(), RunningParameter.who(cloudbreakActor.useRealUmsUser(AuthUserKeys.LEGACY_ACC_ENV_ADMIN)))
                 .given(EnvironmentTestDto.class)
                 .withCreateFreeIpa(false)
-                .when(environmentTestClient.create(), RunningParameter.who(Actor.useRealUmsUser(AuthUserKeys.LEGACY_ACC_ENV_ADMIN)))
+                .when(environmentTestClient.create(), RunningParameter.who(cloudbreakActor.useRealUmsUser(AuthUserKeys.LEGACY_ACC_ENV_ADMIN)))
                 .await(EnvironmentStatus.AVAILABLE)
                 .when(environmentTestClient.describe())
                 .given(FreeIpaTestDto.class)
                 .withCatalog(getImageCatalogMockServerSetup().getFreeIpaImageCatalogUrl())
-                .when(freeIpaTestClient.create(), RunningParameter.who(Actor.useRealUmsUser(AuthUserKeys.LEGACY_ACC_ENV_ADMIN)))
+                .when(freeIpaTestClient.create(), RunningParameter.who(cloudbreakActor.useRealUmsUser(AuthUserKeys.LEGACY_ACC_ENV_ADMIN)))
                 .await(Status.AVAILABLE)
                 .when(freeIpaTestClient.describe())
                 .validate();

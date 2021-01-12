@@ -3,13 +3,16 @@ package com.sequenceiq.it.cloudbreak.context;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 
-import com.sequenceiq.it.cloudbreak.actor.Actor;
+import javax.inject.Inject;
+
+import com.sequenceiq.it.cloudbreak.actor.CloudbreakActor;
+import com.sequenceiq.it.cloudbreak.actor.CloudbreakUser;
 import com.sequenceiq.it.cloudbreak.actor.CloudbreakUserCache;
 import com.sequenceiq.it.cloudbreak.testcase.authorization.AuthUserKeys;
 
 public class RunningParameter {
 
-    private Actor who;
+    private CloudbreakUser who;
 
     private boolean skipOnFail = true;
 
@@ -27,16 +30,22 @@ public class RunningParameter {
 
     private boolean waitForFlow = true;
 
-    public Actor getWho() {
+    @Inject
+    private CloudbreakUserCache cloudbreakUserCache;
+
+    @Inject
+    private CloudbreakActor cloudbreakActor;
+
+    public CloudbreakUser getWho() {
         if (doAsAdmin) {
-            if (CloudbreakUserCache.getInstance().isInitialized()) {
-                return Actor.useRealUmsUser(AuthUserKeys.ACCOUNT_ADMIN);
+            if (cloudbreakUserCache.isInitialized()) {
+                return cloudbreakActor.useRealUmsUser(AuthUserKeys.ACCOUNT_ADMIN);
             }
         }
         return who;
     }
 
-    public RunningParameter withWho(Actor who) {
+    public RunningParameter withWho(CloudbreakUser who) {
         this.who = who;
         return this;
     }
@@ -134,7 +143,7 @@ public class RunningParameter {
                 .withSkipOnFail(false);
     }
 
-    public static RunningParameter who(Actor who) {
+    public static RunningParameter who(CloudbreakUser who) {
         return new RunningParameter()
                 .withWho(who);
     }

@@ -13,7 +13,7 @@ import com.google.common.collect.Maps;
 import com.sequenceiq.authorization.info.model.RightV4;
 import com.sequenceiq.environment.api.v1.environment.model.response.EnvironmentStatus;
 import com.sequenceiq.freeipa.api.v1.freeipa.stack.model.common.Status;
-import com.sequenceiq.it.cloudbreak.actor.Actor;
+import com.sequenceiq.it.cloudbreak.actor.CloudbreakActor;
 import com.sequenceiq.it.cloudbreak.assertion.util.CheckResourceRightFalseAssertion;
 import com.sequenceiq.it.cloudbreak.assertion.util.CheckResourceRightTrueAssertion;
 import com.sequenceiq.it.cloudbreak.assertion.util.CheckRightFalseAssertion;
@@ -46,6 +46,9 @@ public class EnvironmentCreateTest extends AbstractMockTest {
     @Inject
     private UtilTestClient utilTestClient;
 
+    @Inject
+    private CloudbreakActor cloudbreakActor;
+
     @Override
     protected void setupTest(TestContext testContext) {
         useRealUmsUser(testContext, AuthUserKeys.ACCOUNT_ADMIN);
@@ -70,12 +73,12 @@ public class EnvironmentCreateTest extends AbstractMockTest {
                 .await(EnvironmentStatus.AVAILABLE)
 
                 // testing unauthorized calls for environment
-                .when(environmentTestClient.describe(), RunningParameter.who(Actor.useRealUmsUser(AuthUserKeys.ENV_CREATOR_B)))
+                .when(environmentTestClient.describe(), RunningParameter.who(cloudbreakActor.useRealUmsUser(AuthUserKeys.ENV_CREATOR_B)))
                 .expect(ForbiddenException.class,
                         RunningParameter.expectedMessage("Doesn't have 'environments/describeEnvironment' right on 'environment' " +
                                 environmentPattern(testContext))
                                 .withKey("EnvironmentGetAction"))
-                .when(environmentTestClient.describe(), RunningParameter.who(Actor.useRealUmsUser(AuthUserKeys.ZERO_RIGHTS)))
+                .when(environmentTestClient.describe(), RunningParameter.who(cloudbreakActor.useRealUmsUser(AuthUserKeys.ZERO_RIGHTS)))
                 .expect(ForbiddenException.class,
                         RunningParameter.expectedMessage("Doesn't have 'environments/describeEnvironment' right on 'environment' " +
                                 environmentPattern(testContext))
@@ -90,7 +93,7 @@ public class EnvironmentCreateTest extends AbstractMockTest {
                 .withEnvironmentUser()
                 .when(environmentTestClient.assignResourceRole(AuthUserKeys.ENV_CREATOR_B))
                 .given(EnvironmentTestDto.class)
-                .when(environmentTestClient.describe(), RunningParameter.who(Actor.useRealUmsUser(AuthUserKeys.ENV_CREATOR_B)))
+                .when(environmentTestClient.describe(), RunningParameter.who(cloudbreakActor.useRealUmsUser(AuthUserKeys.ENV_CREATOR_B)))
                 .validate();
         testCheckRightUtil(testContext, testContext.given(EnvironmentTestDto.class).getCrn());
         testContext
@@ -138,17 +141,17 @@ public class EnvironmentCreateTest extends AbstractMockTest {
                 .await(Status.AVAILABLE)
 
                 //testing unathorized freeipa calls for the environment
-                .when(freeIpaTestClient.describe(), RunningParameter.who(Actor.useRealUmsUser(AuthUserKeys.ENV_CREATOR_B)))
+                .when(freeIpaTestClient.describe(), RunningParameter.who(cloudbreakActor.useRealUmsUser(AuthUserKeys.ENV_CREATOR_B)))
                 .expect(ForbiddenException.class,
                         RunningParameter.expectedMessage("Doesn't have 'environments/describeEnvironment' right on 'environment' " +
                                 environmentFreeIpaPattern(testContext))
                                 .withKey("FreeIpaDescribeAction"))
-                .when(freeIpaTestClient.stop(), RunningParameter.who(Actor.useRealUmsUser(AuthUserKeys.ENV_CREATOR_B)))
+                .when(freeIpaTestClient.stop(), RunningParameter.who(cloudbreakActor.useRealUmsUser(AuthUserKeys.ENV_CREATOR_B)))
                 .expect(ForbiddenException.class,
                         RunningParameter.expectedMessage("Doesn't have 'environments/stopEnvironment' right on 'environment' " +
                                 environmentFreeIpaPattern(testContext))
                                 .withKey("FreeIpaStopAction"))
-                .when(freeIpaTestClient.start(), RunningParameter.who(Actor.useRealUmsUser(AuthUserKeys.ENV_CREATOR_B)))
+                .when(freeIpaTestClient.start(), RunningParameter.who(cloudbreakActor.useRealUmsUser(AuthUserKeys.ENV_CREATOR_B)))
                 .expect(ForbiddenException.class,
                         RunningParameter.expectedMessage("Doesn't have 'environments/startEnvironment' right on 'environment' " +
                                 environmentFreeIpaPattern(testContext))

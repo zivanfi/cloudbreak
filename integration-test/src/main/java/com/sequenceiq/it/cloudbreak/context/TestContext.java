@@ -24,7 +24,6 @@ import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
-import org.springframework.util.StringUtils;
 import org.testng.ITestResult;
 import org.testng.Reporter;
 
@@ -41,9 +40,8 @@ import com.sequenceiq.it.cloudbreak.RedbeamsClient;
 import com.sequenceiq.it.cloudbreak.SdxClient;
 import com.sequenceiq.it.cloudbreak.UmsClient;
 import com.sequenceiq.it.cloudbreak.action.Action;
-import com.sequenceiq.it.cloudbreak.actor.Actor;
+import com.sequenceiq.it.cloudbreak.actor.CloudbreakActor;
 import com.sequenceiq.it.cloudbreak.actor.CloudbreakUser;
-import com.sequenceiq.it.cloudbreak.actor.CloudbreakUserCache;
 import com.sequenceiq.it.cloudbreak.assertion.Assertion;
 import com.sequenceiq.it.cloudbreak.cloud.v4.CloudProviderProxy;
 import com.sequenceiq.it.cloudbreak.cloud.v4.CommonCloudProperties;
@@ -135,6 +133,9 @@ public abstract class TestContext implements ApplicationContextAware {
     @Inject
     private Tracer tracer;
 
+    @Inject
+    private CloudbreakActor cloudbreakActor;
+
     private boolean validated;
 
     private boolean initialized;
@@ -204,7 +205,7 @@ public abstract class TestContext implements ApplicationContextAware {
             RunningParameter runningParameter) {
         checkShutdown();
         String key = runningParameter.getKey();
-        if (StringUtils.isEmpty(key)) {
+        if (key == null || key.isEmpty()) {
             key = action.getClass().getSimpleName();
         }
 
@@ -213,7 +214,7 @@ public abstract class TestContext implements ApplicationContextAware {
             return entity;
         }
 
-        CloudbreakUser who = getWho(runningParameter);
+        CloudbreakUser who = setActingUser(runningParameter);
 
         LOGGER.info("when {} action on {} by {}, name: {}", key, entity, who, entity.getName());
         Log.when(LOGGER, action.getClass().getSimpleName() + " action on " + entity + " by " + who);
@@ -272,7 +273,7 @@ public abstract class TestContext implements ApplicationContextAware {
             return entity;
         }
 
-        CloudbreakUser who = getWho(runningParameter);
+        CloudbreakUser who = setActingUser(runningParameter);
 
         Log.then(LOGGER, assertion.getClass().getSimpleName() + " assertion on " + entity + " by " + who);
         try {
@@ -293,26 +294,27 @@ public abstract class TestContext implements ApplicationContextAware {
     }
 
     public TestContext as() {
-        return as(Actor::defaultUser);
+        return as(getActingUser());
     }
 
-    public TestContext as(Actor actor) {
+    public TestContext as(CloudbreakUser cloudbreakUser) {
         checkShutdown();
-        CloudbreakUser acting = actor.acting(testParameter);
-        Log.as(LOGGER, acting.toString());
-        setActingUser(acting);
-        if (clients.get(acting.getAccessKey()) == null) {
-            CloudbreakClient cloudbreakClient = CloudbreakClient.createProxyCloudbreakClient(testParameter, acting);
-            FreeIpaClient freeIpaClient = FreeIpaClient.createProxyFreeIpaClient(testParameter, acting);
-            EnvironmentClient environmentClient = EnvironmentClient.createProxyEnvironmentClient(testParameter, acting);
-            SdxClient sdxClient = SdxClient.createProxySdxClient(testParameter, acting);
+        LOGGER.info(" Acting user as: \ndisplay name: {} \naccess key: {} \nsecret key: {} \ncrn: {} \nadmin: {} ", cloudbreakUser.getDisplayName(),
+                cloudbreakUser.getAccessKey(), cloudbreakUser.getSecretKey(), cloudbreakUser.getCrn(), cloudbreakUser.getAdmin());
+        Log.as(LOGGER, cloudbreakUser.toString());
+        setActingUser(cloudbreakUser);
+        if (clients.get(cloudbreakUser.getAccessKey()) == null) {
+            CloudbreakClient cloudbreakClient = CloudbreakClient.createProxyCloudbreakClient(testParameter, cloudbreakUser);
+            FreeIpaClient freeIpaClient = FreeIpaClient.createProxyFreeIpaClient(testParameter, cloudbreakUser);
+            EnvironmentClient environmentClient = EnvironmentClient.createProxyEnvironmentClient(testParameter, cloudbreakUser);
+            SdxClient sdxClient = SdxClient.createProxySdxClient(testParameter, cloudbreakUser);
             UmsClient umsClient = UmsClient.createProxyUmsClient(tracer);
-            RedbeamsClient redbeamsClient = RedbeamsClient.createProxyRedbeamsClient(testParameter, acting);
+            RedbeamsClient redbeamsClient = RedbeamsClient.createProxyRedbeamsClient(testParameter, cloudbreakUser);
             Map<Class<? extends MicroserviceClient>, MicroserviceClient> clientMap = Map.of(CloudbreakClient.class, cloudbreakClient,
                     FreeIpaClient.class, freeIpaClient, EnvironmentClient.class, environmentClient, SdxClient.class, sdxClient,
                     RedbeamsClient.class, redbeamsClient,
                     UmsClient.class, umsClient);
-            clients.put(acting.getAccessKey(), clientMap);
+            clients.put(cloudbreakUser.getAccessKey(), clientMap);
             cloudbreakClient.setWorkspaceId(0L);
             redbeamsClient.setEnvironmentCrn(Crn.builder(CrnResourceDescriptor.ENVIRONMENT)
                     .setAccountId("it")
@@ -323,7 +325,7 @@ public abstract class TestContext implements ApplicationContextAware {
     }
 
     private CloudbreakUser createInternalActorForAccountIfNotExists(String tenantName) {
-        CloudbreakUser internalUser = Actor.create(tenantName, "__internal__actor__").acting(testParameter);
+        CloudbreakUser internalUser = cloudbreakActor.create(tenantName, "__internal__actor__");
         if (clients.get(internalUser.getAccessKey()) == null) {
             CloudbreakClient cloudbreakClient = CloudbreakClient.createProxyCloudbreakClient(testParameter, internalUser);
             FreeIpaClient freeIpaClient = FreeIpaClient.createProxyFreeIpaClient(testParameter, internalUser);
@@ -337,7 +339,27 @@ public abstract class TestContext implements ApplicationContextAware {
                     UmsClient.class, umsClient);
             clients.put(internalUser.getAccessKey(), clientMap);
         }
+        LOGGER.info(" Created and initialized internal user:: \nDisplay name: {} \nAccess key: {} \nSecret key: {} \nCrn: {} \nAdmin: {} ",
+                internalUser.getDisplayName(), internalUser.getAccessKey(), internalUser.getSecretKey(), internalUser.getCrn(), internalUser.getAdmin());
         return internalUser;
+    }
+
+    private void initMicroserviceClientsForUMSAccountAdmin(CloudbreakUser accountAdmin) {
+        if (clients.get(accountAdmin.getAccessKey()) == null) {
+            CloudbreakClient cloudbreakClient = CloudbreakClient.createProxyCloudbreakClient(testParameter, accountAdmin);
+            FreeIpaClient freeIpaClient = FreeIpaClient.createProxyFreeIpaClient(testParameter, accountAdmin);
+            EnvironmentClient environmentClient = EnvironmentClient.createProxyEnvironmentClient(testParameter, accountAdmin);
+            SdxClient sdxClient = SdxClient.createProxySdxClient(testParameter, accountAdmin);
+            UmsClient umsClient = UmsClient.createProxyUmsClient(tracer);
+            RedbeamsClient redbeamsClient = RedbeamsClient.createProxyRedbeamsClient(testParameter, accountAdmin);
+            Map<Class<? extends MicroserviceClient>, MicroserviceClient> clientMap = Map.of(CloudbreakClient.class, cloudbreakClient,
+                    FreeIpaClient.class, freeIpaClient, EnvironmentClient.class, environmentClient, SdxClient.class, sdxClient,
+                    RedbeamsClient.class, redbeamsClient,
+                    UmsClient.class, umsClient);
+            clients.put(accountAdmin.getAccessKey(), clientMap);
+        }
+        LOGGER.info(" Microservice clients have been initialized successfully for UMS account admin:: \nDisplay name: {} \nAccess key: {} \nSecret key: {} " +
+                        "\nCrn: {} ", accountAdmin.getDisplayName(), accountAdmin.getAccessKey(), accountAdmin.getSecretKey(), accountAdmin.getCrn());
     }
 
     public TestContext addDescription(TestCaseDescription testCaseDesription) {
@@ -363,7 +385,7 @@ public abstract class TestContext implements ApplicationContextAware {
                 .map(Object::toString);
     }
 
-    protected String getActingUserAccessKey() {
+    public String getActingUserAccessKey() {
         if (this.actingUser == null) {
             return testParameter.get(CloudbreakTest.ACCESS_KEY);
         }
@@ -378,8 +400,11 @@ public abstract class TestContext implements ApplicationContextAware {
     }
 
     /**
-     * Default application parameter:
-     * integrationtest.user.crn or "localhost" in ~/.dp/config
+     * Returning the default Mock user's Customer Reference Number (CRN).
+     *
+     * Default Mock user details can be defined at:
+     * - application parameter: integrationtest.user.crn
+     * - in ~/.dp/config as "localhost" profile
      */
     private Optional<Crn> getMockUserCrn() {
         try {
@@ -391,8 +416,10 @@ public abstract class TestContext implements ApplicationContextAware {
     }
 
     /**
-     * Real UMS user:
-     * useRealUmsUser(testContext, AuthUserKeys.ACCOUNT_ADMIN);
+     * Returning the acting (actually used as actor) UMS user's Customer Reference Number (CRN).
+     *
+     * Default UMS user details are defined at ums-users/api-credentials.json and can be accessed
+     * by `useRealUmsUser(testContext, AuthUserKeys.ACCOUNT_ADMIN)`
      */
     private Optional<Crn> getRealUMSUserCrn() {
         if (Crn.isCrn(getActingUser().getCrn())) {
@@ -402,11 +429,14 @@ public abstract class TestContext implements ApplicationContextAware {
     }
 
     /**
-     * Application parameter:
-     * integrationtest.user.crn
+     * Returning the default Cloudbreak user's Customer Reference Number (CRN).
+     *
+     * Default Cloudbreak user details can be defined as:
+     * - application parameter: integrationtest.user.crn
+     * - environment variable: INTEGRATIONTEST_USER_CRN
      */
     private Optional<Crn> getUserParameterCrn() {
-        if (!testParameter.get(CloudbreakTest.USER_CRN).isEmpty() || testParameter.get(CloudbreakTest.USER_CRN) != null) {
+        if (testParameter.get(CloudbreakTest.USER_CRN) != null || !testParameter.get(CloudbreakTest.USER_CRN).isEmpty()) {
             return Optional.ofNullable(Crn.fromString(testParameter.get(CloudbreakTest.USER_CRN)));
         }
         return Optional.empty();
@@ -420,8 +450,11 @@ public abstract class TestContext implements ApplicationContextAware {
     }
 
     /**
-     * Default application parameter:
-     * integrationtest.user.crn or "localhost" in ~/.dp/config
+     * Returning the default Mock user's name.
+     *
+     * Default Mock user details can be defined at:
+     * - application parameter: integrationtest.user.crn
+     * - in ~/.dp/config as "localhost" profile
      */
     private Optional<String> getMockUserName() {
         try {
@@ -433,8 +466,10 @@ public abstract class TestContext implements ApplicationContextAware {
     }
 
     /**
-     * Real UMS user:
-     * useRealUmsUser(testContext, AuthUserKeys.ACCOUNT_ADMIN);
+     * Returning the acting (actually used as actor) UMS user's name.
+     *
+     * Default UMS user details are defined at ums-users/api-credentials.json and can be accessed
+     * by `useRealUmsUser(testContext, AuthUserKeys.ACCOUNT_ADMIN)`
      */
     private Optional<String> getRealUMSUserName() {
         if (Crn.isCrn(getActingUser().getCrn())) {
@@ -444,22 +479,100 @@ public abstract class TestContext implements ApplicationContextAware {
     }
 
     /**
-     * Application parameter:
-     * integrationtest.user.name
+     * Returning the default Cloudbreak user's name.
+     *
+     * Default Cloudbreak user details can be defined as:
+     * - application parameter: integrationtest.user.name
+     * - environment variable: INTEGRATIONTEST_USER_NAME
      */
     private Optional<String> getUserParameterName() {
-        if (!testParameter.get(CloudbreakTest.USER_NAME).isEmpty() || testParameter.get(CloudbreakTest.USER_NAME) != null) {
+        if (testParameter.get(CloudbreakTest.USER_NAME) != null || !testParameter.get(CloudbreakTest.USER_NAME).isEmpty()) {
             return Optional.of(testParameter.get(CloudbreakTest.USER_NAME));
         }
         return Optional.empty();
     }
 
-    protected void setActingUser(CloudbreakUser actingUser) {
+    /**
+     * Updates the acting user with the provided one.
+     *
+     * @param actingUser         Provided acting user (CloudbreakUser)
+     */
+    public void setActingUser(CloudbreakUser actingUser) {
+        LOGGER.info(" Acting user has been set:: \nDisplay Name: {} \nAccess Key: {} \nSecret Key: {} \nCRN: {} \nAdmin: {} \nDescription: {} ",
+                actingUser.getDisplayName(), actingUser.getAccessKey(), actingUser.getSecretKey(), actingUser.getCrn(), actingUser.getAdmin(),
+                actingUser.getDescription());
         this.actingUser = actingUser;
     }
 
-    protected CloudbreakUser getActingUser() {
+    /**
+     * If requested user is present, sets it as acting user then returns with it, otherwise returns the actual acting user.
+     *
+     * @param runningParameter   Running parameter with acting user. Sample: RunningParameter.who(cloudbreakActor
+     *                           .getRealUmsUser(AuthUserKeys.ENV_CREATOR_A))
+     * @return                   Returns with the acting user (CloudbreakUser)
+     */
+    public CloudbreakUser setActingUser(RunningParameter runningParameter) {
+        CloudbreakUser cloudbreakUser = runningParameter.getWho();
+        if (cloudbreakUser == null) {
+            cloudbreakUser = getActingUser();
+            LOGGER.info(" Requested user for acting is NULL. So we are falling back to actual acting user:: \nDisplay Name: {} \nAccess Key: {}" +
+                            " \nSecret Key: {} \nCRN: {} \nAdmin: {} \nDescription: {} ", cloudbreakUser.getDisplayName(), cloudbreakUser.getAccessKey(),
+                    cloudbreakUser.getSecretKey(), cloudbreakUser.getCrn(), cloudbreakUser.getAdmin(), cloudbreakUser.getDescription());
+        } else {
+            if (!actingUser.getDisplayName().equalsIgnoreCase(cloudbreakUser.getDisplayName())) {
+                setActingUser(cloudbreakUser);
+            } else {
+                LOGGER.info(" Requested user for acting is the same as actual acting user:: \nDisplay Name: {} \nAccess Key: {} \nSecret Key: {} \nCRN: {}" +
+                                " \nAdmin: {} \nDescription: {} ", actingUser.getDisplayName(), actingUser.getAccessKey(), actingUser.getSecretKey(),
+                        actingUser.getCrn(), actingUser.getAdmin(), actingUser.getDescription());
+            }
+        }
+        return cloudbreakUser;
+    }
+
+    /**
+     * If acting user is present, returns the user, otherwise returns the Default user.
+     *
+     * Default Cloudbreak user details can be defined as:
+     * - application parameter: integrationtest.user.accesskey and integrationtest.user.secretkey
+     * - environment variable: INTEGRATIONTEST_USER_ACCESSKEY and INTEGRATIONTEST_USER_SECRETKEYOR
+     *
+     * @return                   Returns with the acting user (CloudbreakUser)
+     */
+    public CloudbreakUser getActingUser() {
+        if (actingUser == null) {
+            LOGGER.info(" Requested acting user is NULL. So we are falling back to Default user with \nACCESS_KEY: {} \nSECRET_KEY: {}",
+                    testParameter.get(CloudbreakTest.ACCESS_KEY), testParameter.get(CloudbreakTest.SECRET_KEY));
+            setActingUser(cloudbreakActor.defaultUser());
+        } else {
+            LOGGER.info(" Found acting user is present with details:: \nDisplay Name: {} \nAccess Key: {} \nSecret Key: {} \nCRN: {} \nAdmin: {}" +
+                            " \nDescription: {} ", actingUser.getDisplayName(), actingUser.getAccessKey(), actingUser.getSecretKey(), actingUser.getCrn(),
+                    actingUser.getAdmin(), actingUser.getDescription());
+        }
         return actingUser;
+    }
+
+    /**
+     * Request a real UMS user by AuthUserKeys from the fetched ums-users/api-credentials.json
+     *
+     * @param userKey            Key with UMS user's display name. Sample: AuthUserKeys.ACCOUNT_ADMIN
+     * @return                   Returns with the UMS user (CloudbreakUser)
+     */
+    public CloudbreakUser getRealUmsUserByKey(String userKey) {
+        CloudbreakUser requestedRealUmsUser;
+        if (actingUser.getDisplayName().equalsIgnoreCase(userKey)) {
+            LOGGER.info(" Requested real UMS user is the same as acting user:: \nDisplay Name: {} \nAccess Key: {} \nSecret Key: {} \nCRN: {} \nAdmin: {}" +
+                            " \nDescription: {} ", actingUser.getDisplayName(), actingUser.getAccessKey(), actingUser.getSecretKey(), actingUser.getCrn(),
+                    actingUser.getAdmin(), actingUser.getDescription());
+            requestedRealUmsUser = actingUser;
+        } else {
+            requestedRealUmsUser = cloudbreakActor.useRealUmsUser(userKey);
+            LOGGER.info(" Found real UMS user:: \nDisplay Name: {} \nAccess Key: {} \nSecret Key: {} \nCRN: {} \nAdmin: {}" +
+                            " \nDescription: {} ", requestedRealUmsUser.getDisplayName(), requestedRealUmsUser.getAccessKey(),
+                    requestedRealUmsUser.getSecretKey(), requestedRealUmsUser.getCrn(), requestedRealUmsUser.getAdmin(),
+                    requestedRealUmsUser.getDescription());
+        }
+        return requestedRealUmsUser;
     }
 
     public <O extends CloudbreakTestDto> O init(Class<O> clss) {
@@ -550,7 +663,7 @@ public abstract class TestContext implements ApplicationContextAware {
     public <O, T extends CloudbreakTestDto> T select(T entity, Attribute<T, O> attribute, Finder<O> finder, RunningParameter runningParameter) {
         checkShutdown();
         String key = runningParameter.getKey();
-        if (StringUtils.isEmpty(key)) {
+        if (key == null || key.isEmpty()) {
             key = attribute.getClass().getSimpleName();
         }
 
@@ -581,7 +694,7 @@ public abstract class TestContext implements ApplicationContextAware {
     public <O, T extends CloudbreakTestDto> T capture(T entity, Attribute<T, O> attribute, RunningParameter runningParameter) {
         checkShutdown();
         String key = runningParameter.getKey();
-        if (StringUtils.isEmpty(key)) {
+        if (key == null || key.isEmpty()) {
             key = entity.getClass().getSimpleName();
         }
 
@@ -593,7 +706,7 @@ public abstract class TestContext implements ApplicationContextAware {
         try {
             O attr = attribute.get(entity);
             String captureKey = key;
-            if (StringUtils.isEmpty(key)) {
+            if (key.isEmpty()) {
                 captureKey = entity.getClass().getSimpleName();
             }
             captures.put(captureKey, new Capture(attr));
@@ -609,7 +722,7 @@ public abstract class TestContext implements ApplicationContextAware {
     public <O, T extends CloudbreakTestDto> T verify(T entity, Attribute<T, O> attribute, RunningParameter runningParameter) {
         checkShutdown();
         String key = runningParameter.getKey();
-        if (StringUtils.isEmpty(key)) {
+        if (key == null || key.isEmpty()) {
             key = attribute.getClass().getSimpleName();
         }
 
@@ -621,7 +734,7 @@ public abstract class TestContext implements ApplicationContextAware {
         try {
             O attr = attribute.get(entity);
             String captureKey = key;
-            if (StringUtils.isEmpty(key)) {
+            if (key.isEmpty()) {
                 captureKey = entity.getClass().getSimpleName();
             }
             Capture capture = captures.get(captureKey);
@@ -657,8 +770,11 @@ public abstract class TestContext implements ApplicationContextAware {
 
     public <U extends MicroserviceClient> U getAdminMicroserviceClient(Class<? extends CloudbreakTestDto> testDtoClass, String accountId) {
         String accessKey;
-        if (CloudbreakUserCache.getInstance().isInitialized()) {
-            accessKey = CloudbreakUserCache.getInstance().getAdminAccessKeyByAccountId(accountId);
+        if (Optional.ofNullable(cloudbreakActor.isInitialized()).orElse(false)) {
+            accessKey = cloudbreakActor.getAdminAccessKeyByAccountId(accountId);
+            if (clients.get(accessKey) == null || clients.get(accessKey).isEmpty()) {
+                initMicroserviceClientsForUMSAccountAdmin(cloudbreakActor.getAdminByAccountId(accountId));
+            }
         } else {
             CloudbreakUser internalActorForAccount = createInternalActorForAccountIfNotExists(accountId);
             accessKey = internalActorForAccount.getAccessKey();
@@ -754,7 +870,8 @@ public abstract class TestContext implements ApplicationContextAware {
             Duration pollingInterval) {
         checkShutdown();
         if (!getExceptionMap().isEmpty() && runningParameter.isSkipOnFail()) {
-            Log.await(LOGGER, String.format("Cloudbreak await should be skipped because of previous error. await [%s]", desiredStatuses));
+            Log.await(LOGGER, String.format("Cloudbreak await for instance should be skipped because of previous error. awaitforinstance [%s]",
+                    desiredStatuses));
             return entity;
         }
         String key = getKeyForAwait(entity, entity.getClass(), runningParameter);
@@ -765,29 +882,33 @@ public abstract class TestContext implements ApplicationContextAware {
 
     public <T extends CloudbreakTestDto> T awaitForFlow(T entity, RunningParameter runningParameter) {
         checkShutdown();
+        String key = getKeyForAwait(entity, entity.getClass(), runningParameter);
+        if (key == null || key.isEmpty()) {
+            key = entity.getClass().getSimpleName();
+        }
+        CloudbreakTestDto awaitEntity = get(key);
+        if (awaitEntity == null) {
+            awaitEntity = entity;
+        }
         if (!getExceptionMap().isEmpty() && runningParameter.isSkipOnFail()) {
             Log.await(LOGGER, "Cloudbreak await for flow should be skipped because of previous error.");
             return entity;
         }
-        String key = getKeyForAwait(entity, entity.getClass(), runningParameter);
-        CloudbreakTestDto awaitEntity = get(key);
-        if (awaitEntity == null && runningParameter.getKey() == null) {
-            throw new RuntimeException("Cloudbreak key provided but no result in resource map, key=" + key);
-        }
-        if (awaitEntity == null) {
-            awaitEntity = entity;
-        }
-        Log.await(LOGGER, String.format(" Cloudbreak await for flow %s ", entity));
+        LOGGER.info(String.format(" Cloudbreak await for flow on resource: %s at account: %s - for entity: %s ", awaitEntity.getCrn(),
+                Objects.requireNonNull(Crn.fromString(awaitEntity.getCrn())).getAccountId(), awaitEntity));
+        Log.await(LOGGER, String.format(" Cloudbreak await for flow on resource: %s at account: %s - for entity: %s ", awaitEntity.getCrn(),
+                Objects.requireNonNull(Crn.fromString(awaitEntity.getCrn())).getAccountId(), awaitEntity));
         try {
-            MicroserviceClient msClient = getAdminMicroserviceClient(awaitEntity.getClass(), Crn.fromString(awaitEntity.getCrn()).getAccountId());
+            MicroserviceClient msClient = getAdminMicroserviceClient(awaitEntity.getClass(), Objects.requireNonNull(Crn.fromString(awaitEntity.getCrn()))
+                    .getAccountId());
             flowUtilSingleStatus.waitBasedOnLastKnownFlow(awaitEntity, msClient);
         } catch (Exception e) {
             if (runningParameter.isLogError()) {
-                LOGGER.error("Cloudbreak await for flow '{}' is failed for: '{}', because of {}", entity, entity.getName(), e.getMessage(), e);
+                LOGGER.error("Cloudbreak await for flow '{}' is failed for: '{}', because of {}", awaitEntity, awaitEntity.getName(), e.getMessage(), e);
                 Log.await(LOGGER, String.format(" Cloudbreak await for flow '%s' is failed for '%s', because of %s",
-                        entity, entity.getName(), e.getMessage()));
+                        awaitEntity, awaitEntity.getName(), e.getMessage()));
             }
-            getExceptionMap().put("Cloudbreak await for flow " + entity, e);
+            getExceptionMap().put("Cloudbreak await for flow " + awaitEntity, e);
         }
         return entity;
     }
@@ -821,7 +942,7 @@ public abstract class TestContext implements ApplicationContextAware {
     }
 
     private boolean isMessageEquals(Exception exception, RunningParameter runningParameter) {
-        return StringUtils.isEmpty(runningParameter.getExpectedMessage())
+        return runningParameter.getExpectedMessage() == null || runningParameter.getExpectedMessage().isEmpty()
                 || Pattern.compile(runningParameter.getExpectedMessage()).matcher(ResponseUtil.getErrorMessage(exception)).find();
     }
 
@@ -882,18 +1003,6 @@ public abstract class TestContext implements ApplicationContextAware {
         return entity;
     }
 
-    public CloudbreakUser getWho(RunningParameter runningParameter) {
-        Actor actor = runningParameter.getWho();
-        if (actor == null) {
-            LOGGER.info("Run with acting user. {}", getActingUser());
-            return getActingUser();
-        } else {
-            CloudbreakUser who = actor.acting(testParameter);
-            LOGGER.info("Run with given user. {}", who);
-            return who;
-        }
-    }
-
     private <T> String getKeyForAwait(T entity, Class<? extends T> entityClass, RunningParameter runningParameter) {
         Optional<Map.Entry<String, CloudbreakTestDto>> foundEntry = resources.entrySet().stream()
                 .filter(entry -> entry.getValue() == entity)
@@ -906,7 +1015,7 @@ public abstract class TestContext implements ApplicationContextAware {
 
     private <T> String getKey(Class<T> entityClass, RunningParameter runningParameter) {
         String key = runningParameter.getKey();
-        if (StringUtils.isEmpty(key)) {
+        if (key == null || key.isEmpty()) {
             key = entityClass.getSimpleName();
         }
         return key;
@@ -927,8 +1036,11 @@ public abstract class TestContext implements ApplicationContextAware {
             throw new IllegalStateException(
                     "Test context should be validated! Maybe you forgot to call .validate() at the end of the test? See other tests as an example.");
         }
+
         checkShutdown();
+
         handleExceptionsDuringTest(TestErrorLog.IGNORE);
+
         if (!cleanUpOnFailure && !getExceptionMap().isEmpty()) {
             LOGGER.info("Cleanup skipped beacuse cleanupOnFail is false");
             return;

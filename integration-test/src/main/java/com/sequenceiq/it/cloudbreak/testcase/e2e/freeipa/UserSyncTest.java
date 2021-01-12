@@ -16,7 +16,7 @@ import com.google.common.base.Joiner;
 import com.sequenceiq.freeipa.api.v1.freeipa.stack.model.common.Status;
 import com.sequenceiq.freeipa.api.v1.freeipa.user.model.FailureDetails;
 import com.sequenceiq.freeipa.api.v1.freeipa.user.model.SynchronizationStatus;
-import com.sequenceiq.freeipa.api.v1.freeipa.user.model.UserSyncState;
+import com.sequenceiq.freeipa.api.v1.operation.model.OperationState;
 import com.sequenceiq.it.cloudbreak.client.FreeIpaTestClient;
 import com.sequenceiq.it.cloudbreak.context.Description;
 import com.sequenceiq.it.cloudbreak.context.TestContext;
@@ -43,7 +43,8 @@ public class UserSyncTest extends AbstractE2ETest {
                 .when(freeIpaTestClient.create(), key(freeIpa))
                 .await(Status.AVAILABLE)
                 .given(FreeIpaUserSyncTestDto.class)
-                .await(UserSyncState.UP_TO_DATE)
+                .when(freeIpaTestClient.describeLastSync())
+                .await(OperationState.COMPLETED)
                 .validate();
         testContext.given(FreeIpaUserSyncStatusDto.class)
                 .when(freeIpaTestClient.getLastUserSyncStatus())

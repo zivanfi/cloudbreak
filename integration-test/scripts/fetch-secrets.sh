@@ -2,7 +2,7 @@
 
 set -ex
 
-secret_version="b0b0437d23b54aa48f605652a195a250"
+secret_version="01c7615fad834f52a5f489f387a43e52"
 
 USER_JSON_LOCATION="./src/main/resources/ums-users/api-credentials.json"
 

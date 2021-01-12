@@ -1,4 +1,4 @@
-package com.sequenceiq.it.cloudbreak.testcase.authorization;
+package com.sequenceiq.it.cloudbreak.testcase.e2e.manowar;
 
 import javax.inject.Inject;
 
@@ -14,9 +14,11 @@ import com.sequenceiq.it.cloudbreak.context.Description;
 import com.sequenceiq.it.cloudbreak.context.TestContext;
 import com.sequenceiq.it.cloudbreak.dto.environment.EnvironmentTestDto;
 import com.sequenceiq.it.cloudbreak.dto.freeipa.FreeIpaTestDto;
-import com.sequenceiq.it.cloudbreak.testcase.mock.AbstractMockTest;
+import com.sequenceiq.it.cloudbreak.dto.telemetry.TelemetryTestDto;
+import com.sequenceiq.it.cloudbreak.testcase.authorization.AuthUserKeys;
+import com.sequenceiq.it.cloudbreak.testcase.e2e.AbstractE2ETest;
 
-public class EnvironmentLegacyAuthzGetTest extends AbstractMockTest {
+public class EnvironmentLegacyAuthzGetTest extends AbstractE2ETest {
 
     private static final String REAL_UMS_ACCOUNT_KEY = "legacy";
 
@@ -44,7 +46,7 @@ public class EnvironmentLegacyAuthzGetTest extends AbstractMockTest {
         createDefaultImageCatalog(testContext);
     }
 
-    @Test(dataProvider = TEST_CONTEXT_WITH_MOCK)
+    @Test(dataProvider = TEST_CONTEXT)
     @Description(
             given = "there is a running env service",
             when = "valid create environment request is sent",
@@ -57,8 +59,11 @@ public class EnvironmentLegacyAuthzGetTest extends AbstractMockTest {
                 .when(environmentTestClient.create())
                 .await(EnvironmentStatus.AVAILABLE)
                 .when(environmentTestClient.describe())
+                .given("telemetry", TelemetryTestDto.class)
+                .withLogging()
+                .withReportClusterLogs()
                 .given(FreeIpaTestDto.class)
-                .withCatalog(getImageCatalogMockServerSetup().getFreeIpaImageCatalogUrl())
+                .withTelemetry("telemetry")
                 .when(freeIpaTestClient.create())
                 .await(Status.AVAILABLE)
                 .when(freeIpaTestClient.describe())

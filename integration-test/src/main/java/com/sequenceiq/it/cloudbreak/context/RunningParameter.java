@@ -2,14 +2,24 @@ package com.sequenceiq.it.cloudbreak.context;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.Optional;
 
-import com.sequenceiq.it.cloudbreak.actor.Actor;
-import com.sequenceiq.it.cloudbreak.actor.CloudbreakUserCache;
+import javax.inject.Inject;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
+import com.sequenceiq.it.cloudbreak.actor.CloudbreakActor;
+import com.sequenceiq.it.cloudbreak.actor.CloudbreakUser;
 import com.sequenceiq.it.cloudbreak.testcase.authorization.AuthUserKeys;
 
+@Component
 public class RunningParameter {
 
-    private Actor who;
+    private static final Logger LOGGER = LoggerFactory.getLogger(RunningParameter.class);
+
+    private CloudbreakUser who;
 
     private boolean skipOnFail = true;
 
@@ -27,16 +37,24 @@ public class RunningParameter {
 
     private boolean waitForFlow = true;
 
-    public Actor getWho() {
-        if (doAsAdmin) {
-            if (CloudbreakUserCache.getInstance().isInitialized()) {
-                return Actor.useRealUmsUser(AuthUserKeys.ACCOUNT_ADMIN);
+    @Inject
+    private CloudbreakActor cloudbreakActor;
+
+    public CloudbreakUser getWho() {
+        if (Optional.ofNullable(doAsAdmin).orElse(false)) {
+            try {
+                if (Optional.ofNullable(cloudbreakActor.isInitialized()).orElse(false)) {
+                    return cloudbreakActor.useRealUmsUser(AuthUserKeys.ACCOUNT_ADMIN);
+                }
+            } catch (Exception ignored) {
+                LOGGER.warn("Even the 'doAsAdmin' is 'true' in {}, the UMS users have not been initialized, falling back to the already defined user!",
+                        getClass().getSimpleName());
             }
         }
         return who;
     }
 
-    public RunningParameter withWho(Actor who) {
+    public RunningParameter withWho(CloudbreakUser who) {
         this.who = who;
         return this;
     }
@@ -134,7 +152,7 @@ public class RunningParameter {
                 .withSkipOnFail(false);
     }
 
-    public static RunningParameter who(Actor who) {
+    public static RunningParameter who(CloudbreakUser who) {
         return new RunningParameter()
                 .withWho(who);
     }

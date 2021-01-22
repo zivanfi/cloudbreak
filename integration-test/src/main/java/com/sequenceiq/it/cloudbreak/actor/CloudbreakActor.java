@@ -4,13 +4,13 @@ import java.util.Base64;
 
 import javax.inject.Inject;
 
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import com.sequenceiq.it.TestParameter;
 import com.sequenceiq.it.cloudbreak.CloudbreakTest;
 
-@Service
+@Component
 public class CloudbreakActor implements Actor {
 
     @Inject

@@ -24,6 +24,16 @@ import com.sequenceiq.it.TestParameter;
 
 public class CloudbreakTest extends GherkinTest {
 
+    public static final String INTEGRATIONTEST_CLOUDBREAK_SERVER = "INTEGRATIONTEST_CLOUDBREAK_SERVER";
+
+    public static final String INTEGRATIONTEST_USER_ACCESSKEY = "INTEGRATIONTEST_USER_ACCESSKEY";
+
+    public static final String INTEGRATIONTEST_USER_SECRETKEY = "INTEGRATIONTEST_USER_SECRETKEY";
+
+    public static final String INTEGRATIONTEST_USER_CRN = "INTEGRATIONTEST_USER_CRN";
+
+    public static final String INTEGRATIONTEST_USER_NAME = "INTEGRATIONTEST_USER_NAME";
+
     public static final String CLOUDBREAK_SERVER_ROOT = "CLOUDBREAK_SERVER_ROOT";
 
     public static final String IMAGE_CATALOG_MOCK_SERVER_ROOT = "IMAGE_CATALOG_MOCK_SERVER_ROOT";
@@ -60,16 +70,16 @@ public class CloudbreakTest extends GherkinTest {
     @Value("${server.contextPath:/cb}")
     private String cbRootContextPath;
 
-    @Value("${integrationtest.user.accesskey}")
+    @Value("${integrationtest.user.accesskey:}")
     private String accesskey;
 
-    @Value("${integrationtest.user.secretkey}")
+    @Value("${integrationtest.user.secretkey:}")
     private String secretkey;
 
-    @Value("${integrationtest.user.crn}")
+    @Value("${integrationtest.user.crn:}")
     private String userCrn;
 
-    @Value("${integrationtest.user.name}")
+    @Value("${integrationtest.user.name:}")
     private String userName;
 
     @Value("${mock.imagecatalog.server:localhost}")
@@ -97,10 +107,10 @@ public class CloudbreakTest extends GherkinTest {
 
         LOGGER.info("CloudbreakTest default values ::: ");
         IntegrationTestContext testContext = getItContext();
-        if (StringUtils.isEmpty(accesskey)) {
+        if (StringUtils.hasLength(accesskey)) {
             throw new NullPointerException("INTEGRATIONTEST_USER_ACCESSKEY should be set");
         }
-        if (StringUtils.isEmpty(secretkey)) {
+        if (StringUtils.hasLength(secretkey)) {
             throw new NullPointerException("INTEGRATIONTEST_USER_SECRETKEY should be set");
         }
         testContext.putContextParam(CLOUDBREAK_SERVER_ROOT, server + cbRootContextPath);
@@ -114,7 +124,17 @@ public class CloudbreakTest extends GherkinTest {
         testContext.putContextParam(AUTOSCALE_CLIENT_ID, autoscaleUaaClientId);
         testContext.putContextParam(AUTOSCALE_SECRET, autoscaleUaaClientSecret);
 
-        testParameter.put("INTEGRATIONTEST_CLOUDBREAK_SERVER", server + cbRootContextPath);
+        testParameter.put(INTEGRATIONTEST_CLOUDBREAK_SERVER, server + cbRootContextPath);
+        testParameter.put(ACCESS_KEY, accesskey);
+        testParameter.put(SECRET_KEY, secretkey);
+        testParameter.put(USER_CRN, userCrn);
+        testParameter.put(USER_NAME, userName);
+
+        LOGGER.info(" Following user details have been set whether as environment variables or at (test) application.yml::" +
+                        " \nINTEGRATIONTEST_USER_ACCESSKEY: {} \nINTEGRATIONTEST_USER_SECRETKEY: {} \nINTEGRATIONTEST_USER_CRN: {}" +
+                        " \nINTEGRATIONTEST_USER_NAME: {} ", accesskey, secretkey, userCrn, userName);
+        LOGGER.info(" Following user details have been add to test parameters:: \nACCESS_KEY: {} \nSECRET_KEY: {} \nUSER_CRN: {} \nUSER_NAME: {} ",
+                testParameter.get(ACCESS_KEY), testParameter.get(SECRET_KEY), testParameter.get(USER_CRN), testParameter.get(USER_NAME));
 
         try {
             CloudbreakClient client = CloudbreakClient.created();
@@ -162,7 +182,7 @@ public class CloudbreakTest extends GherkinTest {
                     LOGGER.info("processing property source ::: " + propertySource.getName());
                     for (String key : ((EnumerablePropertySource) propertySource).getPropertyNames()) {
                         String value = propertySource.getProperty(key).toString();
-                        if (!StringUtils.isEmpty(value)) {
+                        if (!StringUtils.hasLength(value)) {
                             rtn.put(key, propertySource.getProperty(key).toString());
                         }
                     }

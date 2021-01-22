@@ -218,7 +218,7 @@ public abstract class TestContext implements ApplicationContextAware {
             return entity;
         }
 
-        CloudbreakUser who = getWho(runningParameter);
+        CloudbreakUser who = getActingUser();
 
         LOGGER.info("when {} action on {} by {}, name: {}", key, entity, who, entity.getName());
         Log.when(LOGGER, action.getClass().getSimpleName() + " action on " + entity + " by " + who);
@@ -277,7 +277,7 @@ public abstract class TestContext implements ApplicationContextAware {
             return entity;
         }
 
-        CloudbreakUser who = getWho(runningParameter);
+        CloudbreakUser who = getActingUser();
 
         Log.then(LOGGER, assertion.getClass().getSimpleName() + " assertion on " + entity + " by " + who);
         try {
@@ -298,12 +298,12 @@ public abstract class TestContext implements ApplicationContextAware {
     }
 
     public TestContext as() {
-        return as(new CloudbreakActor(testParameter).defaultUser());
+        return as(getActingUser());
     }
 
     public TestContext as(CloudbreakUser cloudbreakUser) {
         checkShutdown();
-        LOGGER.info(" Acting user \ndisplay name: {} \naccess key: {} \nsecret key: {} \ncrn: {} \nadmin: {} ", cloudbreakUser.getDisplayName(),
+        LOGGER.info(" Acting user as: \ndisplay name: {} \naccess key: {} \nsecret key: {} \ncrn: {} \nadmin: {} ", cloudbreakUser.getDisplayName(),
                 cloudbreakUser.getAccessKey(), cloudbreakUser.getSecretKey(), cloudbreakUser.getCrn(), cloudbreakUser.getAdmin());
         Log.as(LOGGER, cloudbreakUser.toString());
         setActingUser(cloudbreakUser);
@@ -343,6 +343,8 @@ public abstract class TestContext implements ApplicationContextAware {
                     UmsClient.class, umsClient);
             clients.put(internalUser.getAccessKey(), clientMap);
         }
+        LOGGER.info(" Created internal user as: \ndisplay name: {} \naccess key: {} \nsecret key: {} \ncrn: {} \nadmin: {} ", internalUser.getDisplayName(),
+                internalUser.getAccessKey(), internalUser.getSecretKey(), internalUser.getCrn(), internalUser.getAdmin());
         return internalUser;
     }
 
@@ -369,7 +371,7 @@ public abstract class TestContext implements ApplicationContextAware {
                 .map(Object::toString);
     }
 
-    protected String getActingUserAccessKey() {
+    public String getActingUserAccessKey() {
         if (this.actingUser == null) {
             return testParameter.get(CloudbreakTest.ACCESS_KEY);
         }
@@ -464,8 +466,35 @@ public abstract class TestContext implements ApplicationContextAware {
         this.actingUser = actingUser;
     }
 
-    protected CloudbreakUser getActingUser() {
+    /**
+     * Request a Cloudbreak user as actor.
+     * If the actor has already been initialized, it is returning the found Cloudbreak user.
+     * If the actor is not present (by strating up the application), it is returning the default user. Here the default user details must be set
+     * whether as environment variables or at (test) application.yml.
+     *
+     * @return  Requested CloudbreakUser
+     */
+    public CloudbreakUser getActingUser() {
+        if (actingUser == null) {
+            LOGGER.info(" Requested acting user is NULL. So we are falling back to Default user with \nACCESS_KEY: {} \nSECRET_KEY: {}",
+                    testParameter.get(CloudbreakTest.ACCESS_KEY), testParameter.get(CloudbreakTest.SECRET_KEY));
+            setActingUser(new CloudbreakActor(testParameter).defaultUser());
+        } else {
+            LOGGER.info(" Found acting user is present with details: \nDisplay Name: {} \nAccess Key: {} \nSecret Key: {} \nCRN: {} \nAdmin: {}" +
+                            " \nDescription: {} ", actingUser.getDisplayName(), actingUser.getAccessKey(), actingUser.getSecretKey(), actingUser.getCrn(),
+                    actingUser.getAdmin(), actingUser.getDescription());
+        }
         return actingUser;
+    }
+
+    /**
+     * Request a real UMS user by AuthUserKeys from the fetched ums-users/api-credentials.json
+     *
+     * @param userKey   Sample key: AuthUserKeys.ACCOUNT_ADMIN
+     * @return          Requested real UMS CloudbreakUser
+     */
+    public CloudbreakUser getRealUmsUserByKey(String userKey) {
+        return cloudbreakActor.useRealUmsUser(userKey);
     }
 
     public <O extends CloudbreakTestDto> O init(Class<O> clss) {
@@ -886,18 +915,6 @@ public abstract class TestContext implements ApplicationContextAware {
             entity = init(entityClass);
         }
         return entity;
-    }
-
-    public CloudbreakUser getWho(RunningParameter runningParameter) {
-        CloudbreakUser actor = runningParameter.getWho();
-        if (actor == null) {
-            LOGGER.info("Run with acting user. {}", getActingUser());
-            return getActingUser();
-        } else {
-            CloudbreakUser who = cloudbreakActor.defaultUser();
-            LOGGER.info("Run with given user. {}", who);
-            return who;
-        }
     }
 
     private <T> String getKeyForAwait(T entity, Class<? extends T> entityClass, RunningParameter runningParameter) {

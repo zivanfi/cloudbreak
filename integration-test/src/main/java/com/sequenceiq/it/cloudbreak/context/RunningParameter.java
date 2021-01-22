@@ -5,11 +5,14 @@ import java.util.Arrays;
 
 import javax.inject.Inject;
 
+import org.springframework.stereotype.Component;
+
 import com.sequenceiq.it.cloudbreak.actor.CloudbreakActor;
 import com.sequenceiq.it.cloudbreak.actor.CloudbreakUser;
 import com.sequenceiq.it.cloudbreak.actor.CloudbreakUserCache;
 import com.sequenceiq.it.cloudbreak.testcase.authorization.AuthUserKeys;
 
+@Component
 public class RunningParameter {
 
     private CloudbreakUser who;

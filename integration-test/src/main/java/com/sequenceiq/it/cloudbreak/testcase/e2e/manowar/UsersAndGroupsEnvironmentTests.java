@@ -32,19 +32,20 @@ public class UsersAndGroupsEnvironmentTests extends AbstractE2ETest {
     @Override
     protected void setupTest(TestContext testContext) {
         testContext.getCloudProvider().getCloudFunctionality().cloudStorageInitialize();
-        useRealUmsUser(testContext, AuthUserKeys.ACCOUNT_ADMIN);
+//        useRealUmsUser(testContext, AuthUserKeys.ACCOUNT_ADMIN);
+        createDefaultUser(testContext);
         initializeDefaultBlueprints(testContext);
         createDefaultCredential(testContext);
         createEnvironmentWithNetwork(testContext);
     }
 
-    @Test(dataProvider = TEST_CONTEXT, enabled = false)
+    @Test(dataProvider = TEST_CONTEXT)
     @UseSpotInstances
     @Description(
             given = "there is a running environment",
-            when = "add freeIpa to the running environment then syncornize all users",
-            then = "freeIpa should be created then syncronized successfully at environment")
-    public void testCreateNewFreeIpaAndSyncronize(TestContext testContext) {
+            when = "add freeIpa to the running environment then synchronize all users",
+            then = "freeIpa should be created then synchronized successfully at environment")
+    public void testCreateNewFreeIpaThenSyncronize(TestContext testContext) {
         String freeIpa = resourcePropertyProvider().getName();
 
         testContext
@@ -63,7 +64,7 @@ public class UsersAndGroupsEnvironmentTests extends AbstractE2ETest {
                 .validate();
     }
 
-    @Test(dataProvider = TEST_CONTEXT)
+    @Test(dataProvider = TEST_CONTEXT, enabled = false)
     @UseSpotInstances
     @Description(
             given = "there is a running environment",

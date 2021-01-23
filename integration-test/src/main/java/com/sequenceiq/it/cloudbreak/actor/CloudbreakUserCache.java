@@ -11,17 +11,16 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.test.context.ConfigFileApplicationContextInitializer;
+import org.springframework.boot.test.context.ConfigDataApplicationContextInitializer;
 import org.springframework.stereotype.Component;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.util.StringUtils;
 
 import com.sequenceiq.cloudbreak.auth.altus.Crn;
 import com.sequenceiq.cloudbreak.util.FileReaderUtils;
 import com.sequenceiq.it.cloudbreak.exception.TestFailException;
 import com.sequenceiq.it.config.IntegrationTestConfiguration;
 
-@ContextConfiguration(classes = IntegrationTestConfiguration.class, initializers = ConfigFileApplicationContextInitializer.class)
+@ContextConfiguration(classes = IntegrationTestConfiguration.class, initializers = ConfigDataApplicationContextInitializer.class)
 @Component
 public class CloudbreakUserCache {
 
@@ -34,21 +33,6 @@ public class CloudbreakUserCache {
 
     @Value("${integrationtest.user.mow.environmentKey:dev}")
     private String realUmsUserEnvironment;
-
-    public CloudbreakUser getByName(String name) {
-        return getByName(name, getRealUmsUserEnvironment(), getRealUmsUserAccount());
-    }
-
-    public CloudbreakUser getByName(String name, String environmentKey, String accountKey) {
-        if (usersByAccount == null) {
-            initUsers(environmentKey, accountKey);
-        }
-        CloudbreakUser user = usersByAccount.values().stream().flatMap(Collection::stream)
-                .filter(u -> u.getDisplayName().equals(name)).findFirst().get();
-        LOGGER.info(" Acting real UMS user \nname: {} \ncrn: {} \naccessKey: {} \nsecretKey: {} \nadmin: {} ", user.getDisplayName(), user.getCrn(),
-                user.getAccessKey(), user.getSecretKey(), user.getAdmin());
-        return user;
-    }
 
     public void setUsersByAccount(Map<String, List<CloudbreakUser>> users) {
         this.usersByAccount = users;
@@ -64,6 +48,37 @@ public class CloudbreakUserCache {
 
     public String getRealUmsUserEnvironment() {
         return realUmsUserEnvironment;
+    }
+
+    public CloudbreakUser getByName(String name) {
+        return getByName(name, getRealUmsUserEnvironment(), getRealUmsUserAccount());
+    }
+
+    public CloudbreakUser getByName(String name, String environmentKey, String accountKey) {
+        if (usersByAccount == null) {
+            initUsers(environmentKey, accountKey);
+        }
+        CloudbreakUser cloudbreakUser = usersByAccount.values().stream().flatMap(Collection::stream)
+                .filter(user -> user.getDisplayName().equals(name)).findFirst()
+                .orElseThrow(() -> new TestFailException(String.format("There is no real UMS test user with name %s", name)));
+        LOGGER.info(" Requested real UMS user \nname: {} \ncrn: {} \naccessKey: {} \nsecretKey: {} \nadmin: {} ", cloudbreakUser.getDisplayName(),
+                cloudbreakUser.getCrn(), cloudbreakUser.getAccessKey(), cloudbreakUser.getSecretKey(), cloudbreakUser.getAdmin());
+        return cloudbreakUser;
+    }
+
+    public String getAdminAccessKeyByAccountId(String accountId) {
+        return getAdminAccessKeyByAccountId(accountId, getRealUmsUserEnvironment(), getRealUmsUserAccount());
+    }
+
+    public String getAdminAccessKeyByAccountId(String accountId, String environmentKey, String accountKey) {
+        if (usersByAccount == null) {
+            initUsers(environmentKey, accountKey);
+        }
+        String userAccessKey = usersByAccount.get(accountId).stream()
+                .filter(CloudbreakUser::getAdmin).findFirst()
+                .orElseThrow(() -> new TestFailException(String.format("There is no real UMS account admin for account %s", accountId))).getAccessKey();
+        LOGGER.info(" Requested real UMS admin accessKey: {} for account: {} ", userAccessKey, accountId);
+        return userAccessKey;
     }
 
     public void initUsers(String environmentKey, String accountKey) {
@@ -99,19 +114,7 @@ public class CloudbreakUserCache {
         });
     }
 
-    public String getAdminAccessKeyByAccountId(String accountId) {
-        return usersByAccount.get(accountId).stream().filter(CloudbreakUser::getAdmin).findFirst()
-                .orElseThrow(() -> new TestFailException(String.format("There is no account admin test user for account %s", accountId))).getAccessKey();
-    }
-
     public boolean isInitialized() {
-        return usersByAccount != null;
-    }
-
-    private void checkNonEmpty(String name, String value) {
-        if (StringUtils.hasLength(value)) {
-            throw new NullPointerException(String.format("Following variable must be set whether as environment variables or (test) application.yml: %s",
-                    name.replaceAll("\\.", "_").toUpperCase()));
-        }
+        return usersByAccount != null && !usersByAccount.isEmpty();
     }
 }

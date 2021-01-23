@@ -21,25 +21,21 @@ import com.sequenceiq.it.cloudbreak.dto.util.CheckRightTestDto;
 public class AuthorizationTestUtil {
 
     @Inject
-    private static CloudbreakActor cloudbreakActor;
+    private CloudbreakActor cloudbreakActor;
 
-    private AuthorizationTestUtil() {
-
-    }
-
-    public static void testCheckRightUtil(TestContext testContext, String testUmsUser, Assertion<CheckRightTestDto, CloudbreakClient> assertion,
+    public void testCheckRightUtil(TestContext testContext, String testUmsUser, Assertion<CheckRightTestDto, CloudbreakClient> assertion,
             List<RightV4> rightsToCheck, UtilTestClient utilTestClient) {
         testContext
                 .given(CheckRightTestDto.class).withRightsToCheck(rightsToCheck)
-                .when(utilTestClient.checkRight(), RunningParameter.who(cloudbreakActor.useRealUmsUser(testUmsUser)))
+                .when(utilTestClient.checkRight(), RunningParameter.who(cloudbreakActor.getRealUmsUser(testUmsUser)))
                 .then(assertion);
     }
 
-    public static void testCheckResourceRightUtil(TestContext testContext, String testUmsUser, Assertion<CheckResourceRightTestDto, CloudbreakClient> assertion,
+    public void testCheckResourceRightUtil(TestContext testContext, String testUmsUser, Assertion<CheckResourceRightTestDto, CloudbreakClient> assertion,
             Map<String, List<RightV4>> rightsToCheck, UtilTestClient utilTestClient) {
         testContext
                 .given(CheckResourceRightTestDto.class).withRightsToCheck(rightsToCheck)
-                .when(utilTestClient.checkResourceRight(), RunningParameter.who(cloudbreakActor.useRealUmsUser(testUmsUser)))
+                .when(utilTestClient.checkResourceRight(), RunningParameter.who(cloudbreakActor.getRealUmsUser(testUmsUser)))
                 .then(assertion);
     }
 }

@@ -41,7 +41,7 @@ public class RecipeTestDto extends DeletableTestDto<RecipeV4Request, RecipeV4Res
     public void cleanUp(TestContext context, MicroserviceClient cloudbreakClient) {
         LOGGER.info("Cleaning up recipe with name: {}", getName());
         try {
-            when(recipeTestClient.deleteV4(), key("delete-recipe-" + getName()).withSkipOnFail(false));
+            when(recipeTestClient.deleteV4(), key("delete-recipe-" + getName()).withSkipOnFail(false).switchToAdmin());
         } catch (WebApplicationException ignore) {
             LOGGER.warn("Something went wrong during {} recipe delete, because of: {}", getName(), ignore.getMessage(), ignore);
         }

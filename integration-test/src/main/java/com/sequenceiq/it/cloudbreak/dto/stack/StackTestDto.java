@@ -75,7 +75,7 @@ public class StackTestDto extends StackTestDtoBase<StackTestDto> implements Purg
     public void cleanUp(TestContext context, MicroserviceClient client) {
         LOGGER.info("Cleaning up stack with name: {}", getName());
         if (getResponse() != null) {
-            when(stackTestClient.forceDeleteV4(), key("delete-stack-" + getName()).withSkipOnFail(false));
+            when(stackTestClient.forceDeleteV4(), key("delete-stack-" + getName()).withSkipOnFail(false).switchToAdmin());
             await(STACK_DELETED, new RunningParameter().withSkipOnFail(true));
         } else {
             LOGGER.info("Stack: {} response is null!", getName());

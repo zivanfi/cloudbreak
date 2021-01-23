@@ -90,7 +90,7 @@ public class ImageCatalogTestDto extends AbstractCloudbreakTestDto<ImageCatalogV
         if (!skipCleanup) {
             LOGGER.info("Cleaning up image catalog with name: {}", getName());
             if (getResponse() != null) {
-                when(imageCatalogTestClient.deleteV4(), key("delete-imagecatalog-" + getName()).withSkipOnFail(false));
+                when(imageCatalogTestClient.deleteV4(), key("delete-imagecatalog-" + getName()).withSkipOnFail(false).switchToAdmin());
             } else {
                 LOGGER.info("Image catalog: {} response is null!", getName());
             }

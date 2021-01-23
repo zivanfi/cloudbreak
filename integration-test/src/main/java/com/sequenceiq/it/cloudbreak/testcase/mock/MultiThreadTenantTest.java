@@ -174,7 +174,7 @@ public class MultiThreadTenantTest extends AbstractTestNGSpringContextTests {
     }
 
     protected void createUser(MockedTestContext testContext, String tenant, String user) {
-        testContext.as(cloudbreakActor.create(tenant, user));
+        testContext.as(cloudbreakActor.createNewUser(tenant, user));
     }
 
     protected void initializeDefaultBlueprints(MockedTestContext testContext) {

@@ -34,7 +34,7 @@ public class KerberosTestDto extends AbstractFreeIpaTestDto<CreateKerberosConfig
     public void cleanUp(TestContext context, MicroserviceClient client) {
         LOGGER.info("Cleaning up kerberos config with name: {}", getName());
         try {
-            when(kerberosTestClient.deleteV1(), key("delete-kerberos-" + getName()).withSkipOnFail(false));
+            when(kerberosTestClient.deleteV1(), key("delete-kerberos-" + getName()).withSkipOnFail(false).switchToAdmin());
         } catch (WebApplicationException ignore) {
             LOGGER.warn("Something went wrong during {} kerberos config delete, because of: {}", getName(), ignore.getMessage(), ignore);
         }

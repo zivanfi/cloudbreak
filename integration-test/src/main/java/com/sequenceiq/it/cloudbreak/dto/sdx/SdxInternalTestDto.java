@@ -331,7 +331,7 @@ public class SdxInternalTestDto extends AbstractSdxTestDto<SdxInternalClusterReq
     public void cleanUp(TestContext context, MicroserviceClient client) {
         LOGGER.info("Cleaning up sdx internal with name: {}", getName());
         if (getResponse() != null) {
-            when(sdxTestClient.forceDeleteInternal(), key("delete-sdx-" + getName()));
+            when(sdxTestClient.forceDeleteInternal(), key("delete-sdx-" + getName()).switchToAdmin());
             await(DELETED, new RunningParameter().withSkipOnFail(true));
         } else {
             LOGGER.info("Sdx internal: {} response is null!", getName());

@@ -9,7 +9,6 @@ import javax.ws.rs.ForbiddenException;
 
 import org.testng.annotations.Test;
 
-import com.sequenceiq.it.cloudbreak.actor.CloudbreakActor;
 import com.sequenceiq.it.cloudbreak.client.CredentialTestClient;
 import com.sequenceiq.it.cloudbreak.client.EnvironmentTestClient;
 import com.sequenceiq.it.cloudbreak.context.Description;
@@ -27,9 +26,6 @@ public class CredentialCreateTest extends AbstractIntegrationTest {
 
     @Inject
     private CredentialTestClient credentialTestClient;
-
-    @Inject
-    private CloudbreakActor cloudbreakActor;
 
     @Override
     protected void setupTest(TestContext testContext) {
@@ -61,7 +57,7 @@ public class CredentialCreateTest extends AbstractIntegrationTest {
         testContext
                 .given(CredentialTestDto.class)
                 .when(credentialTestClient.create())
-                .when(credentialTestClient.get(), RunningParameter.who(cloudbreakActor.useRealUmsUser(AuthUserKeys.ENV_CREATOR_B)))
+                .when(credentialTestClient.get(), RunningParameter.who(getCloudbreakActor().getRealUmsUser(AuthUserKeys.ENV_CREATOR_B)))
                 .expect(ForbiddenException.class, RunningParameter.key("CredentialGetAction")
                         .withExpectedMessage("Doesn't have 'environments/describeCredential' right on 'credential' " +
                                 String.format("[\\[]name='%s', crn='crn:cdp:environments:us-west-1:.*:credential:.*'[]]\\.",

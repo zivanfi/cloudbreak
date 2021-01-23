@@ -45,7 +45,7 @@ public class FreeIpaSyncTest extends AbstractMockTest {
                 .given(FreeIpaUserSyncTestDto.class)
                 .when(freeIpaTestClient.describeUserSync())
                 .await(OperationState.COMPLETED);
-        CloudbreakUser internalActor = cloudbreakActor.create(testContext.getActingUserCrn().getAccountId(), "__internal__actor__");
+        CloudbreakUser internalActor = cloudbreakActor.createNewUser(testContext.getActingUserCrn().getAccountId(), "__internal__actor__");
         testContext
                 .as(internalActor)
                 .given(FreeIpaUserSyncTestDto.class)

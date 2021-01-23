@@ -102,6 +102,10 @@ public abstract class AbstractIntegrationTest extends AbstractMinimalTest {
         return environmentTestClient;
     }
 
+    public CloudbreakActor getCloudbreakActor() {
+        return cloudbreakActor;
+    }
+
     protected void createImageValidationSourceCatalog(TestContext testContext, String url, String name) {
         testContext.given(ImageCatalogTestDto.class)
                 .withUrl(url)
@@ -254,11 +258,11 @@ public abstract class AbstractIntegrationTest extends AbstractMinimalTest {
     }
 
     protected void createSecondUser(TestContext testContext) {
-        testContext.as(cloudbreakActor.secondUser());
+        testContext.as(cloudbreakActor.getSecondUser());
     }
 
     protected void useRealUmsUser(TestContext testContext, String key) {
-        testContext.as(cloudbreakActor.useRealUmsUser(key));
+        testContext.as(cloudbreakActor.getRealUmsUser(key));
     }
 
     protected void initializeDefaultBlueprints(TestContext testContext) {

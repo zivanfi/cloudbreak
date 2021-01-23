@@ -315,7 +315,7 @@ public class FreeIpaTestDto extends AbstractFreeIpaTestDto<CreateFreeIpaRequest,
     public void cleanUp(TestContext context, MicroserviceClient cloudbreakClient) {
         LOGGER.info("Cleaning up freeIpa with name: {}", getName());
         if (getResponse() != null) {
-            when(freeIpaTestClient.delete(), key("delete-freeipa-" + getName()).withSkipOnFail(false));
+            when(freeIpaTestClient.delete(), key("delete-freeipa-" + getName()).withSkipOnFail(false).switchToAdmin());
             await(DELETE_COMPLETED, new RunningParameter().withSkipOnFail(true));
         } else {
             LOGGER.info("FreeIpa: {} response is null!", getName());

@@ -78,7 +78,7 @@ public class DistroXTestDto extends DistroXTestDtoBase<DistroXTestDto> implement
     public void cleanUp(TestContext context, MicroserviceClient cloudbreakClient) {
         LOGGER.info("Cleaning up distrox with name: {}", getName());
         if (getResponse() != null) {
-            when(distroXTestClient.forceDelete(), key("delete-distrox-" + getName()).withSkipOnFail(false));
+            when(distroXTestClient.forceDelete(), key("delete-distrox-" + getName()).withSkipOnFail(false).switchToAdmin());
             await(STACK_DELETED, new RunningParameter().withSkipOnFail(true));
         } else {
             LOGGER.info("Distrox: {} response is null!", getName());
@@ -119,7 +119,7 @@ public class DistroXTestDto extends DistroXTestDtoBase<DistroXTestDto> implement
 
     @Override
     public CloudbreakTestDto refresh() {
-        return when(distroXTestClient.refresh(), RunningParameter.key("refresh-distrox-" + getName()).switchToAdmin());
+        return when(distroXTestClient.refresh(), RunningParameter.key("refresh-distrox-" + getName()));
     }
 
     @Override

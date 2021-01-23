@@ -2,11 +2,11 @@ package com.sequenceiq.it.cloudbreak.actor;
 
 public interface Actor {
 
-    CloudbreakUser defaultUser();
+    CloudbreakUser getDefaultUser();
 
-    CloudbreakUser secondUser();
+    CloudbreakUser getSecondUser();
 
-    CloudbreakUser create(String tenantName, String username);
+    CloudbreakUser createNewUser(String tenantName, String username);
 
-    CloudbreakUser useRealUmsUser(String key);
+    CloudbreakUser getRealUmsUser(String key);
 }

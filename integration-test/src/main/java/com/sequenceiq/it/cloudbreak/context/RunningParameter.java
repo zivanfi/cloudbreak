@@ -2,6 +2,7 @@ package com.sequenceiq.it.cloudbreak.context;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.Optional;
 
 import javax.inject.Inject;
 
@@ -9,7 +10,6 @@ import org.springframework.stereotype.Component;
 
 import com.sequenceiq.it.cloudbreak.actor.CloudbreakActor;
 import com.sequenceiq.it.cloudbreak.actor.CloudbreakUser;
-import com.sequenceiq.it.cloudbreak.actor.CloudbreakUserCache;
 import com.sequenceiq.it.cloudbreak.testcase.authorization.AuthUserKeys;
 
 @Component
@@ -34,15 +34,12 @@ public class RunningParameter {
     private boolean waitForFlow = true;
 
     @Inject
-    private CloudbreakUserCache cloudbreakUserCache;
-
-    @Inject
     private CloudbreakActor cloudbreakActor;
 
     public CloudbreakUser getWho() {
         if (doAsAdmin) {
-            if (cloudbreakUserCache.isInitialized()) {
-                return cloudbreakActor.useRealUmsUser(AuthUserKeys.ACCOUNT_ADMIN);
+            if (Optional.ofNullable(cloudbreakActor.realUmsActorPresent()).orElse(false)) {
+                return cloudbreakActor.getRealUmsUser(AuthUserKeys.ACCOUNT_ADMIN);
             }
         }
         return who;

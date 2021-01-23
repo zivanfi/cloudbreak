@@ -12,7 +12,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.sequenceiq.authorization.info.model.RightV4;
 import com.sequenceiq.environment.api.v1.environment.model.response.EnvironmentStatus;
-import com.sequenceiq.it.cloudbreak.actor.CloudbreakActor;
 import com.sequenceiq.it.cloudbreak.assertion.util.CheckResourceRightFalseAssertion;
 import com.sequenceiq.it.cloudbreak.assertion.util.CheckResourceRightTrueAssertion;
 import com.sequenceiq.it.cloudbreak.client.CredentialTestClient;
@@ -51,7 +50,7 @@ public class EnvStopStartWithEnvAdmin extends AbstractIntegrationTest {
     private RecipeTestClient recipeTestClient;
 
     @Inject
-    private CloudbreakActor cloudbreakActor;
+    private AuthorizationTestUtil authorizationTestUtil;
 
     @Override
     protected void setupTest(TestContext testContext) {
@@ -80,20 +79,17 @@ public class EnvStopStartWithEnvAdmin extends AbstractIntegrationTest {
                 .withCreateFreeIpa(false)
                 .when(environmentTestClient.create())
                 .await(EnvironmentStatus.AVAILABLE)
-
                 // testing unauthorized calls for environment
-                .when(environmentTestClient.describe(), RunningParameter.who(cloudbreakActor.useRealUmsUser(AuthUserKeys.ENV_CREATOR_B)))
-                .expect(ForbiddenException.class,
-                        RunningParameter.expectedMessage("Doesn't have 'environments/describeEnvironment' right on 'environment' " +
-                                environmentPattern(testContext))
-                                .withKey("EnvironmentGetAction"))
-                .when(environmentTestClient.describe(), RunningParameter.who(cloudbreakActor.useRealUmsUser(AuthUserKeys.ZERO_RIGHTS)))
-                .expect(ForbiddenException.class,
-                        RunningParameter.expectedMessage("Doesn't have 'environments/describeEnvironment' right on 'environment' " +
-                                environmentPattern(testContext))
-                                .withKey("EnvironmentGetAction"))
+                .when(environmentTestClient.describe(), RunningParameter.who(getCloudbreakActor().getRealUmsUser(AuthUserKeys.ENV_CREATOR_B)))
+                .expect(ForbiddenException.class, RunningParameter.key("EnvironmentGetAction")
+                        .withExpectedMessage("Doesn't have 'environments/describeEnvironment' right on 'environment' " + environmentPattern(testContext)))
+                .when(environmentTestClient.describe(), RunningParameter.who(getCloudbreakActor().getRealUmsUser(AuthUserKeys.ZERO_RIGHTS)))
+                .expect(ForbiddenException.class, RunningParameter.key("EnvironmentGetAction")
+                        .withExpectedMessage("Doesn't have 'environments/describeEnvironment' right on 'environment' " + environmentPattern(testContext)))
                 .validate();
+
         createDatalake(testContext);
+
         testContext
                 .given(EnvironmentTestDto.class)
                 .given(UmsTestDto.class)
@@ -106,14 +102,14 @@ public class EnvStopStartWithEnvAdmin extends AbstractIntegrationTest {
                 .when(environmentTestClient.assignResourceRole(AuthUserKeys.ENV_ADMIN_A))
                 .given(EnvironmentTestDto.class)
                 .given(DistroXTestDto.class)
-                .when(distroXClient.create(), RunningParameter.who(cloudbreakActor.useRealUmsUser(AuthUserKeys.ENV_CREATOR_B)))
-                .await(STACK_AVAILABLE, RunningParameter.who(cloudbreakActor.useRealUmsUser(AuthUserKeys.ACCOUNT_ADMIN)))
+                .when(distroXClient.create(), RunningParameter.who(getCloudbreakActor().getRealUmsUser(AuthUserKeys.ENV_CREATOR_B)))
+                .await(STACK_AVAILABLE, RunningParameter.who(getCloudbreakActor().getRealUmsUser(AuthUserKeys.ACCOUNT_ADMIN)))
                 .given(EnvironmentTestDto.class)
-                .when(environmentTestClient.stop(), RunningParameter.who(cloudbreakActor.useRealUmsUser(AuthUserKeys.ENV_ADMIN_A)))
-                .await(EnvironmentStatus.ENV_STOPPED, RunningParameter.who(cloudbreakActor.useRealUmsUser(AuthUserKeys.ENV_ADMIN_A)))
+                .when(environmentTestClient.stop(), RunningParameter.who(getCloudbreakActor().getRealUmsUser(AuthUserKeys.ENV_ADMIN_A)))
+                .await(EnvironmentStatus.ENV_STOPPED, RunningParameter.who(getCloudbreakActor().getRealUmsUser(AuthUserKeys.ENV_ADMIN_A)))
                 .given(EnvironmentTestDto.class)
-                .when(environmentTestClient.start(), RunningParameter.who(cloudbreakActor.useRealUmsUser(AuthUserKeys.ENV_ADMIN_A)))
-                .await(EnvironmentStatus.AVAILABLE, RunningParameter.who(cloudbreakActor.useRealUmsUser(AuthUserKeys.ENV_ADMIN_A)))
+                .when(environmentTestClient.start(), RunningParameter.who(getCloudbreakActor().getRealUmsUser(AuthUserKeys.ENV_ADMIN_A)))
+                .await(EnvironmentStatus.AVAILABLE, RunningParameter.who(getCloudbreakActor().getRealUmsUser(AuthUserKeys.ENV_ADMIN_A)))
                 .validate();
 
         testCheckRightUtil(testContext, testContext.given(DistroXTestDto.class).getCrn());
@@ -127,11 +123,11 @@ public class EnvStopStartWithEnvAdmin extends AbstractIntegrationTest {
     private void testCheckRightUtil(TestContext testContext, String dhCrn) {
         Map<String, List<RightV4>> resourceRightsToCheck = Maps.newHashMap();
         resourceRightsToCheck.put(dhCrn, Lists.newArrayList(RightV4.DH_DELETE, RightV4.DH_START, RightV4.DH_STOP));
-        AuthorizationTestUtil.testCheckResourceRightUtil(testContext, AuthUserKeys.ENV_CREATOR_A, new CheckResourceRightTrueAssertion(),
+        authorizationTestUtil.testCheckResourceRightUtil(testContext, AuthUserKeys.ENV_CREATOR_A, new CheckResourceRightTrueAssertion(),
                 resourceRightsToCheck, utilTestClient);
-        AuthorizationTestUtil.testCheckResourceRightUtil(testContext, AuthUserKeys.ENV_CREATOR_B, new CheckResourceRightTrueAssertion(),
+        authorizationTestUtil.testCheckResourceRightUtil(testContext, AuthUserKeys.ENV_CREATOR_B, new CheckResourceRightTrueAssertion(),
                 resourceRightsToCheck, utilTestClient);
-        AuthorizationTestUtil.testCheckResourceRightUtil(testContext, AuthUserKeys.ZERO_RIGHTS, new CheckResourceRightFalseAssertion(),
+        authorizationTestUtil.testCheckResourceRightUtil(testContext, AuthUserKeys.ZERO_RIGHTS, new CheckResourceRightFalseAssertion(),
                 resourceRightsToCheck, utilTestClient);
     }
 }

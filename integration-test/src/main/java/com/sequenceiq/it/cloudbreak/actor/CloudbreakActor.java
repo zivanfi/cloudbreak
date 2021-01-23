@@ -4,6 +4,8 @@ import java.util.Base64;
 
 import javax.inject.Inject;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -13,43 +15,30 @@ import com.sequenceiq.it.cloudbreak.CloudbreakTest;
 @Component
 public class CloudbreakActor implements Actor {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(CloudbreakActor.class);
+
     @Inject
     private CloudbreakUserCache cloudbreakUserCache;
 
+    @Inject
     private TestParameter testParameter;
 
-    public CloudbreakActor(TestParameter testParameter) {
-        this.testParameter = testParameter;
-    }
-
-    public TestParameter getTestParameter() {
-        return testParameter;
-    }
-
-    public final void setTestParameter(TestParameter testParameter) {
-        this.testParameter = testParameter;
-    }
-
     @Override
-    public CloudbreakUser defaultUser() {
+    public CloudbreakUser getDefaultUser() {
         return new CloudbreakUser(testParameter.get(CloudbreakTest.ACCESS_KEY), testParameter.get(CloudbreakTest.SECRET_KEY));
     }
 
     @Override
-    public CloudbreakUser secondUser() {
+    public CloudbreakUser getSecondUser() {
         String secondaryAccessKey = testParameter.get(CloudbreakTest.SECONDARY_ACCESS_KEY);
         String secondarySecretKey = testParameter.get(CloudbreakTest.SECONDARY_SECRET_KEY);
-        if (StringUtils.hasLength(secondaryAccessKey)) {
-            throw new IllegalStateException("Add a secondary accessKey to the test: integrationtest.cb.secondary.accesskey");
-        }
-        if (StringUtils.hasLength(secondarySecretKey)) {
-            throw new IllegalStateException("Add a secondary secretKey to the test: integrationtest.cb.secondary.secretkey");
-        }
-        return new CloudbreakUser(testParameter.get(CloudbreakTest.SECONDARY_ACCESS_KEY), testParameter.get(CloudbreakTest.SECONDARY_SECRET_KEY));
+        checkNonEmpty("integrationtest.cb.secondary.accesskey", secondaryAccessKey);
+        checkNonEmpty("integrationtest.cb.secondary.secretkey", secondarySecretKey);
+        return new CloudbreakUser(secondaryAccessKey, secondarySecretKey);
     }
 
     @Override
-    public CloudbreakUser create(String tenantName, String username) {
+    public CloudbreakUser createNewUser(String tenantName, String username) {
         String secretKey = testParameter.get(CloudbreakTest.SECRET_KEY);
         String crn = String.format("crn:cdp:iam:us-west-1:%s:user:%s", tenantName, username);
         String accessKey = Base64.getEncoder().encodeToString(crn.getBytes());
@@ -57,7 +46,27 @@ public class CloudbreakActor implements Actor {
     }
 
     @Override
-    public CloudbreakUser useRealUmsUser(String key) {
+    public CloudbreakUser getRealUmsUser(String key) {
         return cloudbreakUserCache.getByName(key);
+    }
+
+    public boolean realUmsActorPresent() {
+        LOGGER.info("Has Cloudbreak User Cache already been initialized: {}", cloudbreakUserCache.isInitialized());
+        return cloudbreakUserCache.isInitialized();
+    }
+
+    public String getUmsAdminAccessKeyByAccountId(String accountId) {
+        return cloudbreakUserCache.getAdminAccessKeyByAccountId(accountId);
+    }
+
+    public String getUmsAdminAccessKeyByAccountId(String accountId, String environmentKey, String accountKey) {
+        return cloudbreakUserCache.getAdminAccessKeyByAccountId(accountId, environmentKey, accountKey);
+    }
+
+    private void checkNonEmpty(String name, String value) {
+        if (StringUtils.hasLength(value)) {
+            throw new NullPointerException(String.format("Following variable must be set whether as environment variables or (test) application.yml: %s",
+                    name.replaceAll("\\.", "_").toUpperCase()));
+        }
     }
 }

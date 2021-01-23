@@ -43,7 +43,6 @@ import com.sequenceiq.it.cloudbreak.UmsClient;
 import com.sequenceiq.it.cloudbreak.action.Action;
 import com.sequenceiq.it.cloudbreak.actor.CloudbreakActor;
 import com.sequenceiq.it.cloudbreak.actor.CloudbreakUser;
-import com.sequenceiq.it.cloudbreak.actor.CloudbreakUserCache;
 import com.sequenceiq.it.cloudbreak.assertion.Assertion;
 import com.sequenceiq.it.cloudbreak.cloud.v4.CloudProviderProxy;
 import com.sequenceiq.it.cloudbreak.cloud.v4.CommonCloudProperties;
@@ -136,15 +135,13 @@ public abstract class TestContext implements ApplicationContextAware {
     private Tracer tracer;
 
     @Inject
-    private CloudbreakUserCache cloudbreakUserCache;
+    private CloudbreakActor cloudbreakActor;
 
     private boolean validated;
 
     private boolean initialized;
 
     private CloudbreakUser actingUser;
-
-    private CloudbreakActor cloudbreakActor;
 
     public Duration getPollingDurationInMills() {
         return Duration.of(pollingInterval, ChronoUnit.MILLIS);
@@ -214,11 +211,12 @@ public abstract class TestContext implements ApplicationContextAware {
         }
 
         if (!getExceptionMap().isEmpty() && runningParameter.isSkipOnFail()) {
-            LOGGER.info("Should be skipped because of previous error. when [{}]", key);
+            LOGGER.info("Cloudbreak when should be skipped because of previous error. when [{}] - client class: [{}], action: [{}]", key,
+                    clientClass.getName(), action);
             return entity;
         }
 
-        CloudbreakUser who = getActingUser();
+        CloudbreakUser who = requestedActingUser(runningParameter);
 
         LOGGER.info("when {} action on {} by {}, name: {}", key, entity, who, entity.getName());
         Log.when(LOGGER, action.getClass().getSimpleName() + " action on " + entity + " by " + who);
@@ -273,11 +271,12 @@ public abstract class TestContext implements ApplicationContextAware {
         String key = getKey(assertion.getClass(), runningParameter);
 
         if (!getExceptionMap().isEmpty() && runningParameter.isSkipOnFail()) {
-            LOGGER.info("Should be skipped because of previous error. when [{}]", key);
+            LOGGER.info("Cloudbreak then should be skipped because of previous error. then [{}] - client class: [{}], assertion: [{}]", key,
+                    clientClass.getName(), assertion.toString());
             return entity;
         }
 
-        CloudbreakUser who = getActingUser();
+        CloudbreakUser who = requestedActingUser(runningParameter);
 
         Log.then(LOGGER, assertion.getClass().getSimpleName() + " assertion on " + entity + " by " + who);
         try {
@@ -329,7 +328,7 @@ public abstract class TestContext implements ApplicationContextAware {
     }
 
     private CloudbreakUser createInternalActorForAccountIfNotExists(String tenantName) {
-        CloudbreakUser internalUser = new CloudbreakActor(testParameter).create(tenantName, "__internal__actor__");
+        CloudbreakUser internalUser = cloudbreakActor.createNewUser(tenantName, "__internal__actor__");
         if (clients.get(internalUser.getAccessKey()) == null) {
             CloudbreakClient cloudbreakClient = CloudbreakClient.createProxyCloudbreakClient(testParameter, internalUser);
             FreeIpaClient freeIpaClient = FreeIpaClient.createProxyFreeIpaClient(testParameter, internalUser);
@@ -462,25 +461,57 @@ public abstract class TestContext implements ApplicationContextAware {
         return Optional.empty();
     }
 
-    protected void setActingUser(CloudbreakUser actingUser) {
+    /**
+     * If requested user is present, sets it as acting user then returns the user's CloudbreakUser object, otherwise returns the actual acting user.
+     *
+     * @param runningParameter   Given withWho running parameter. Sample: RunningParameter.who(cloudbreakActor.getRealUmsUser(AuthUserKeys.ENV_CREATOR_A))
+     * @return                   Requested and found, otherwise actual acting CloudbreakUser
+     */
+    public CloudbreakUser requestedActingUser(RunningParameter runningParameter) {
+        CloudbreakUser cloudbreakUser = runningParameter.getWho();
+        if (cloudbreakUser == null) {
+            cloudbreakUser = getActingUser();
+            LOGGER.info(" Requested user is NULL. So we are falling back to acting user: \nDisplay Name: {} \nAccess Key: {} \nSecret Key: {} \nCRN: {}" +
+                            " \nAdmin: {} \nDescription: {} ", cloudbreakUser.getDisplayName(), cloudbreakUser.getAccessKey(), cloudbreakUser.getSecretKey(),
+                    cloudbreakUser.getCrn(), cloudbreakUser.getAdmin(), cloudbreakUser.getDescription());
+        } else {
+            if (!actingUser.getDisplayName().equalsIgnoreCase(cloudbreakUser.getDisplayName())) {
+                setActingUser(cloudbreakUser);
+            } else {
+                LOGGER.info(" Requested user is the same as acting user: \nDisplay Name: {} \nAccess Key: {} \nSecret Key: {} \nCRN: {} \nAdmin: {}" +
+                                " \nDescription: {} ", actingUser.getDisplayName(), actingUser.getAccessKey(), actingUser.getSecretKey(), actingUser.getCrn(),
+                        actingUser.getAdmin(), actingUser.getDescription());
+            }
+        }
+        return cloudbreakUser;
+    }
+
+    /**
+     * Set the given CloudbreakUser to acting user.
+     *
+     * @param actingUser   Given user with CloudbreakUser
+     */
+    public void setActingUser(CloudbreakUser actingUser) {
+        LOGGER.info(" Acting user has been set: \nDisplay Name: {} \nAccess Key: {} \nSecret Key: {} \nCRN: {} \nAdmin: {} \nDescription: {} ",
+                actingUser.getDisplayName(), actingUser.getAccessKey(), actingUser.getSecretKey(), actingUser.getCrn(), actingUser.getAdmin(),
+                actingUser.getDescription());
         this.actingUser = actingUser;
     }
 
     /**
-     * Request a Cloudbreak user as actor.
-     * If the actor has already been initialized, it is returning the found Cloudbreak user.
-     * If the actor is not present (by strating up the application), it is returning the default user. Here the default user details must be set
-     * whether as environment variables or at (test) application.yml.
+     * If acting user is present, returns the user's CloudbreakUser object, otherwise returns the Default user (defined by as environment variables -
+     * INTEGRATIONTEST_USER_ACCESSKEY and INTEGRATIONTEST_USER_SECRETKEYOR - at application.yml - integrationtest.user.accesskey
+     * and integrationtest.user.secretkey).
      *
-     * @return  Requested CloudbreakUser
+     * @return             Found, otherwise default CloudbreakUser
      */
     public CloudbreakUser getActingUser() {
         if (actingUser == null) {
-            LOGGER.info(" Requested acting user is NULL. So we are falling back to Default user with \nACCESS_KEY: {} \nSECRET_KEY: {}",
+            LOGGER.info(" Requested acting user is NULL. So we are falling back to Default user: \nACCESS_KEY: {} \nSECRET_KEY: {}",
                     testParameter.get(CloudbreakTest.ACCESS_KEY), testParameter.get(CloudbreakTest.SECRET_KEY));
-            setActingUser(new CloudbreakActor(testParameter).defaultUser());
+            setActingUser(cloudbreakActor.getDefaultUser());
         } else {
-            LOGGER.info(" Found acting user is present with details: \nDisplay Name: {} \nAccess Key: {} \nSecret Key: {} \nCRN: {} \nAdmin: {}" +
+            LOGGER.info(" Acting user is present: \nDisplay Name: {} \nAccess Key: {} \nSecret Key: {} \nCRN: {} \nAdmin: {}" +
                             " \nDescription: {} ", actingUser.getDisplayName(), actingUser.getAccessKey(), actingUser.getSecretKey(), actingUser.getCrn(),
                     actingUser.getAdmin(), actingUser.getDescription());
         }
@@ -490,11 +521,23 @@ public abstract class TestContext implements ApplicationContextAware {
     /**
      * Request a real UMS user by AuthUserKeys from the fetched ums-users/api-credentials.json
      *
-     * @param userKey   Sample key: AuthUserKeys.ACCOUNT_ADMIN
-     * @return          Requested real UMS CloudbreakUser
+     * @param userKey      Sample key: AuthUserKeys.ACCOUNT_ADMIN
+     * @return             Requested real UMS CloudbreakUser
      */
     public CloudbreakUser getRealUmsUserByKey(String userKey) {
-        return cloudbreakActor.useRealUmsUser(userKey);
+        CloudbreakUser requestedRealUmsUser;
+        if (actingUser.getDisplayName().equalsIgnoreCase(userKey)) {
+            LOGGER.info(" Requested real UMS user is the same as acting user: \nDisplay Name: {} \nAccess Key: {} \nSecret Key: {} \nCRN: {} \nAdmin: {}" +
+                            " \nDescription: {} ", actingUser.getDisplayName(), actingUser.getAccessKey(), actingUser.getSecretKey(), actingUser.getCrn(),
+                    actingUser.getAdmin(), actingUser.getDescription());
+            requestedRealUmsUser = actingUser;
+        } else {
+            requestedRealUmsUser = cloudbreakActor.getRealUmsUser(userKey);
+            LOGGER.info(" Found real UMS user: \nDisplay Name: {} \nAccess Key: {} \nSecret Key: {} \nCRN: {} \nAdmin: {}" +
+                            " \nDescription: {} ", requestedRealUmsUser.getDisplayName(), requestedRealUmsUser.getAccessKey(),
+                    requestedRealUmsUser.getSecretKey(), requestedRealUmsUser.getCrn(), requestedRealUmsUser.getAdmin(), requestedRealUmsUser.getDescription());
+        }
+        return requestedRealUmsUser;
     }
 
     public <O extends CloudbreakTestDto> O init(Class<O> clss) {
@@ -590,7 +633,8 @@ public abstract class TestContext implements ApplicationContextAware {
         }
 
         if (!getExceptionMap().isEmpty() && runningParameter.isSkipOnFail()) {
-            LOGGER.info("Should be skipped because of previous error. select: attr: [{}], finder: [{}]", attribute, finder);
+            LOGGER.info("Cloudbreak select should be skipped because of previous error. select [{}] - attribute: [{}], finder: [{}]",
+                    key, attribute, finder);
             return entity;
         }
         LOGGER.info("try to select (attribute: [{}], finder: [{}]) with key={}, name: {}", attribute, finder, key, entity.getName());
@@ -621,7 +665,8 @@ public abstract class TestContext implements ApplicationContextAware {
         }
 
         if (!getExceptionMap().isEmpty() && runningParameter.isSkipOnFail()) {
-            LOGGER.info("Should be skipped because of previous error. capture [{}]", attribute);
+            LOGGER.info("Cloudbreak capture should be skipped because of previous error. capture [{}] - attribute: [{}]", key,
+                    attribute);
             return entity;
         }
         LOGGER.info("try to capture (key={}) [{}], name: {}", key, attribute, entity.getName());
@@ -649,7 +694,7 @@ public abstract class TestContext implements ApplicationContextAware {
         }
 
         if (!getExceptionMap().isEmpty() && runningParameter.isSkipOnFail()) {
-            LOGGER.info("Should be skipped because of previous error. verify [{}]", attribute);
+            LOGGER.info("Cloudbreak verify should be skipped because of previous error. verify [{}] - attribute: [{}]", key, attribute);
             return entity;
         }
         LOGGER.info("try to verify (key={}). attribute [{}], name: {}", key, attribute, entity.getName());
@@ -692,8 +737,8 @@ public abstract class TestContext implements ApplicationContextAware {
 
     public <U extends MicroserviceClient> U getAdminMicroserviceClient(Class<? extends CloudbreakTestDto> testDtoClass, String accountId) {
         String accessKey;
-        if (cloudbreakUserCache.isInitialized()) {
-            accessKey = cloudbreakUserCache.getAdminAccessKeyByAccountId(accountId);
+        if (cloudbreakActor.realUmsActorPresent()) {
+            accessKey = cloudbreakActor.getUmsAdminAccessKeyByAccountId(accountId);
         } else {
             CloudbreakUser internalActorForAccount = createInternalActorForAccountIfNotExists(accountId);
             accessKey = internalActorForAccount.getAccessKey();
@@ -765,11 +810,12 @@ public abstract class TestContext implements ApplicationContextAware {
     public <T extends CloudbreakTestDto, E extends Enum<E>> T await(T entity, Map<String, E> desiredStatuses, RunningParameter runningParameter,
             Duration pollingInterval) {
         checkShutdown();
+        String key = getKeyForAwait(entity, entity.getClass(), runningParameter);
         if (!getExceptionMap().isEmpty() && runningParameter.isSkipOnFail()) {
-            Log.await(LOGGER, String.format("Cloudbreak await should be skipped because of previous error. await [%s]", desiredStatuses));
+            Log.await(LOGGER, String.format("Cloudbreak await should be skipped because of previous error. await [%s] - desired statuses: [%s]", key,
+                    desiredStatuses));
             return entity;
         }
-        String key = getKeyForAwait(entity, entity.getClass(), runningParameter);
         CloudbreakTestDto awaitEntity = get(key);
         if (awaitEntity == null) {
             awaitEntity = entity;
@@ -788,11 +834,12 @@ public abstract class TestContext implements ApplicationContextAware {
     public <T extends CloudbreakTestDto, E extends Enum<E>> T awaitForInstance(T entity, Map<String, E> desiredStatuses, RunningParameter runningParameter,
             Duration pollingInterval) {
         checkShutdown();
+        String key = getKeyForAwait(entity, entity.getClass(), runningParameter);
         if (!getExceptionMap().isEmpty() && runningParameter.isSkipOnFail()) {
-            Log.await(LOGGER, String.format("Cloudbreak await should be skipped because of previous error. await [%s]", desiredStatuses));
+            Log.await(LOGGER, String.format("Cloudbreak await should be skipped because of previous error. await [%s] - desired statuses: [%s]",
+                    key, desiredStatuses));
             return entity;
         }
-        String key = getKeyForAwait(entity, entity.getClass(), runningParameter);
         CloudbreakTestDto awaitEntity = get(key);
         instanceAwait.await(awaitEntity, desiredStatuses, getTestContext(), runningParameter, pollingInterval, maxRetry);
         return entity;
@@ -800,11 +847,11 @@ public abstract class TestContext implements ApplicationContextAware {
 
     public <T extends CloudbreakTestDto> T awaitForFlow(T entity, RunningParameter runningParameter) {
         checkShutdown();
+        String key = getKeyForAwait(entity, entity.getClass(), runningParameter);
         if (!getExceptionMap().isEmpty() && runningParameter.isSkipOnFail()) {
-            Log.await(LOGGER, "Cloudbreak await for flow should be skipped because of previous error.");
+            Log.await(LOGGER, String.format("Cloudbreak await for flow should be skipped because of previous error. awaitforflow [%s]", key));
             return entity;
         }
-        String key = getKeyForAwait(entity, entity.getClass(), runningParameter);
         CloudbreakTestDto awaitEntity = get(key);
         if (awaitEntity == null && runningParameter.getKey() == null) {
             throw new RuntimeException("Cloudbreak key provided but no result in resource map, key=" + key);

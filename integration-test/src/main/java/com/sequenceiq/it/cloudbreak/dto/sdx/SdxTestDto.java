@@ -82,7 +82,7 @@ public class SdxTestDto extends AbstractSdxTestDto<SdxClusterRequest, SdxCluster
     public void cleanUp(TestContext context, MicroserviceClient client) {
         LOGGER.info("Cleaning up sdx with name: {}", getName());
         if (getResponse() != null) {
-            when(sdxTestClient.forceDelete(), key("delete-sdx-" + getName()).withSkipOnFail(false));
+            when(sdxTestClient.forceDelete(), key("delete-sdx-" + getName()).withSkipOnFail(false).switchToAdmin());
             await(DELETED, new RunningParameter().withSkipOnFail(true));
         } else {
             LOGGER.info("Sdx: {} response is null!", getName());

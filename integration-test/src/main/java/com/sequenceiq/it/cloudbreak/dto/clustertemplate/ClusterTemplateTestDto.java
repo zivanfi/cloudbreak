@@ -119,7 +119,7 @@ public class ClusterTemplateTestDto extends DeletableTestDto<ClusterTemplateV4Re
     public void cleanUp(TestContext context, MicroserviceClient client) {
         LOGGER.info("Cleaning up cluster template with name: {}", getName());
         if (getResponse() != null) {
-            when(clusterTemplateTestClient.deleteV4(), key("delete-clustertemplate-" + getName()).withSkipOnFail(false));
+            when(clusterTemplateTestClient.deleteV4(), key("delete-clustertemplate-" + getName()).withSkipOnFail(false).switchToAdmin());
         } else {
             LOGGER.info("Cluster template: {} response is null!", getName());
         }

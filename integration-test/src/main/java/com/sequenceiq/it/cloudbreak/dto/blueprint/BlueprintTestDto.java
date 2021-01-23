@@ -37,7 +37,7 @@ public class BlueprintTestDto extends AbstractCloudbreakTestDto<BlueprintV4Reque
     public void cleanUp(TestContext context, MicroserviceClient cloudbreakClient) {
         LOGGER.info("Cleaning up blueprint with name: {}", getName());
         if (getResponse() != null) {
-            when(blueprintTestClient.deleteV4(), key("delete-blueprint-" + getName()).withSkipOnFail(false));
+            when(blueprintTestClient.deleteV4(), key("delete-blueprint-" + getName()).withSkipOnFail(false).switchToAdmin());
         } else {
             LOGGER.info("Blueprint: {} response is null!", getName());
         }

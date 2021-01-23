@@ -120,7 +120,7 @@ public class CredentialTestDto extends DeletableEnvironmentTestDto<CredentialReq
     public void cleanUp(TestContext context, MicroserviceClient client) {
         LOGGER.info("Cleaning up credential with name: {}", getName());
         if (getResponse() != null) {
-            when(credentialTestClient.delete(), key("delete-credential-" + getName()).withSkipOnFail(false));
+            when(credentialTestClient.delete(), key("delete-credential-" + getName()).withSkipOnFail(false).switchToAdmin());
         } else {
             LOGGER.info("Credential: {} response is null!", getName());
         }

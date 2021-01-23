@@ -31,7 +31,7 @@ public class LdapTestDto extends AbstractFreeIpaTestDto<CreateLdapConfigRequest,
     public void cleanUp(TestContext context, MicroserviceClient client) {
         LOGGER.info("Cleaning up LDAP config with name: {}", getName());
         try {
-            when(ldapTestClient.deleteV1(), key("delete-ldap-" + getName()).withSkipOnFail(false));
+            when(ldapTestClient.deleteV1(), key("delete-ldap-" + getName()).withSkipOnFail(false).switchToAdmin());
         } catch (WebApplicationException ignore) {
             LOGGER.warn("Something went wrong during {} LDAP config delete, because of: {}", getName(), ignore.getMessage(), ignore);
         }

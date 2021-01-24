@@ -32,14 +32,14 @@ public class UsersAndGroupsEnvironmentTests extends AbstractE2ETest {
     @Override
     protected void setupTest(TestContext testContext) {
         testContext.getCloudProvider().getCloudFunctionality().cloudStorageInitialize();
-//        useRealUmsUser(testContext, AuthUserKeys.ACCOUNT_ADMIN);
-        createDefaultUser(testContext);
+        useRealUmsUser(testContext, AuthUserKeys.ACCOUNT_ADMIN);
+//        createDefaultUser(testContext);
         initializeDefaultBlueprints(testContext);
         createDefaultCredential(testContext);
         createEnvironmentWithNetwork(testContext);
     }
 
-    @Test(dataProvider = TEST_CONTEXT)
+    @Test(dataProvider = TEST_CONTEXT, enabled = false)
     @UseSpotInstances
     @Description(
             given = "there is a running environment",
@@ -64,7 +64,7 @@ public class UsersAndGroupsEnvironmentTests extends AbstractE2ETest {
                 .validate();
     }
 
-    @Test(dataProvider = TEST_CONTEXT, enabled = false)
+    @Test(dataProvider = TEST_CONTEXT)
     @UseSpotInstances
     @Description(
             given = "there is a running environment",

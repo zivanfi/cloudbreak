@@ -6,7 +6,6 @@ import org.testng.annotations.Test;
 
 import com.sequenceiq.freeipa.api.v1.freeipa.stack.model.common.Status;
 import com.sequenceiq.freeipa.api.v1.operation.model.OperationState;
-import com.sequenceiq.it.cloudbreak.actor.CloudbreakActor;
 import com.sequenceiq.it.cloudbreak.actor.CloudbreakUser;
 import com.sequenceiq.it.cloudbreak.client.FreeIpaTestClient;
 import com.sequenceiq.it.cloudbreak.context.Description;
@@ -19,9 +18,6 @@ public class FreeIpaSyncTest extends AbstractMockTest {
 
     @Inject
     private FreeIpaTestClient freeIpaTestClient;
-
-    @Inject
-    private CloudbreakActor cloudbreakActor;
 
     @Override
     protected void setupTest(TestContext testContext) {
@@ -45,7 +41,7 @@ public class FreeIpaSyncTest extends AbstractMockTest {
                 .given(FreeIpaUserSyncTestDto.class)
                 .when(freeIpaTestClient.describeUserSync())
                 .await(OperationState.COMPLETED);
-        CloudbreakUser internalActor = cloudbreakActor.createNewUser(testContext.getActingUserCrn().getAccountId(), "__internal__actor__");
+        CloudbreakUser internalActor = getCloudbreakActor().createNewUser(testContext.getActingUserCrn().getAccountId(), "__internal__actor__");
         testContext
                 .as(internalActor)
                 .given(FreeIpaUserSyncTestDto.class)

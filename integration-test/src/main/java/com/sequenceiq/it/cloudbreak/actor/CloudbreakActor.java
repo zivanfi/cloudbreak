@@ -13,12 +13,9 @@ import com.sequenceiq.it.TestParameter;
 import com.sequenceiq.it.cloudbreak.CloudbreakTest;
 
 @Component
-public class CloudbreakActor implements Actor {
+public class CloudbreakActor extends CloudbreakUserCache implements Actor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CloudbreakActor.class);
-
-    @Inject
-    private CloudbreakUserCache cloudbreakUserCache;
 
     @Inject
     private TestParameter testParameter;
@@ -47,20 +44,20 @@ public class CloudbreakActor implements Actor {
 
     @Override
     public CloudbreakUser getRealUmsUser(String key) {
-        return cloudbreakUserCache.getByName(key);
+        return getByName(key);
     }
 
     public boolean realUmsActorPresent() {
-        LOGGER.info("Has Cloudbreak User Cache already been initialized: {}", cloudbreakUserCache.isInitialized());
-        return cloudbreakUserCache.isInitialized();
+        LOGGER.info("Has Cloudbreak User Cache already been initialized: {}", isInitialized());
+        return isInitialized();
     }
 
     public String getUmsAdminAccessKeyByAccountId(String accountId) {
-        return cloudbreakUserCache.getAdminAccessKeyByAccountId(accountId);
+        return getAdminAccessKeyByAccountId(accountId);
     }
 
     public String getUmsAdminAccessKeyByAccountId(String accountId, String environmentKey, String accountKey) {
-        return cloudbreakUserCache.getAdminAccessKeyByAccountId(accountId, environmentKey, accountKey);
+        return getAdminAccessKeyByAccountId(accountId, environmentKey, accountKey);
     }
 
     private void checkNonEmpty(String name, String value) {

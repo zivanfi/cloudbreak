@@ -22,7 +22,7 @@ import com.sequenceiq.it.config.IntegrationTestConfiguration;
 
 @ContextConfiguration(classes = IntegrationTestConfiguration.class, initializers = ConfigDataApplicationContextInitializer.class)
 @Component
-public class CloudbreakUserCache {
+public abstract class CloudbreakUserCache {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CloudbreakUserCache.class);
 

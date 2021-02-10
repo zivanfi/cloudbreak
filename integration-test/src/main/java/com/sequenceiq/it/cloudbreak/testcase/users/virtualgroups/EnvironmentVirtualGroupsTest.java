@@ -1,8 +1,6 @@
-package com.sequenceiq.it.cloudbreak.testcase.authorization;
+package com.sequenceiq.it.cloudbreak.testcase.users.virtualgroups;
 
 import static com.sequenceiq.it.cloudbreak.context.RunningParameter.expectedMessage;
-import static com.sequenceiq.it.cloudbreak.util.AuthorizationTestUtil.environmentFreeIpaPattern;
-import static com.sequenceiq.it.cloudbreak.util.AuthorizationTestUtil.environmentPattern;
 
 import java.util.List;
 import java.util.Map;
@@ -33,10 +31,11 @@ import com.sequenceiq.it.cloudbreak.dto.credential.CredentialTestDto;
 import com.sequenceiq.it.cloudbreak.dto.environment.EnvironmentTestDto;
 import com.sequenceiq.it.cloudbreak.dto.freeipa.FreeIpaTestDto;
 import com.sequenceiq.it.cloudbreak.dto.ums.UmsResourceTestDto;
+import com.sequenceiq.it.cloudbreak.testcase.authorization.AuthUserKeys;
 import com.sequenceiq.it.cloudbreak.testcase.mock.AbstractMockTest;
 import com.sequenceiq.it.cloudbreak.util.AuthorizationTestUtil;
 
-public class EnvironmentCreateTest extends AbstractMockTest {
+public class EnvironmentVirtualGroupsTest extends AbstractMockTest {
 
     @Inject
     private EnvironmentTestClient environmentTestClient;
@@ -136,6 +135,7 @@ public class EnvironmentCreateTest extends AbstractMockTest {
         testContext
                 //testing authorized freeipa calls for the environment
                 .given(FreeIpaTestDto.class)
+                .withCatalog(getImageCatalogMockServerSetup().getFreeIpaImageCatalogUrl())
                 .when(freeIpaTestClient.create())
                 .await(Status.AVAILABLE)
                 .when(freeIpaTestClient.describe())
@@ -151,6 +151,15 @@ public class EnvironmentCreateTest extends AbstractMockTest {
                 .whenException(freeIpaTestClient.start(), ForbiddenException.class, expectedMessage("Doesn't have 'environments/startEnvironment' right on" +
                         " 'environment' " + environmentFreeIpaPattern(testContext)).withWho(cloudbreakActor.useRealUmsUser(AuthUserKeys.ENV_CREATOR_B)))
                 .validate();
+    }
+
+    private String environmentPattern(TestContext testContext) {
+        return String.format("[\\[]name='%s', crn='crn:cdp:environments:us-west-1:.*:environment:.*[]]\\.",
+                testContext.get(EnvironmentTestDto.class).getName());
+    }
+
+    private String environmentFreeIpaPattern(TestContext testContext) {
+        return String.format("[\\[]crn='crn:cdp:environments:us-west-1:.*:environment:.*[]]\\.");
     }
 
 }

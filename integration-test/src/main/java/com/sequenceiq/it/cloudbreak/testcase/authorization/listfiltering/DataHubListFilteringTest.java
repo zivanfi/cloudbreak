@@ -18,7 +18,7 @@ import com.sequenceiq.it.cloudbreak.context.TestContext;
 import com.sequenceiq.it.cloudbreak.dto.distrox.DistroXTestDto;
 import com.sequenceiq.it.cloudbreak.dto.environment.EnvironmentTestDto;
 import com.sequenceiq.it.cloudbreak.dto.imagecatalog.ImageCatalogTestDto;
-import com.sequenceiq.it.cloudbreak.dto.ums.UmsTestDto;
+import com.sequenceiq.it.cloudbreak.dto.ums.UmsResourceTestDto;
 import com.sequenceiq.it.cloudbreak.testcase.AbstractIntegrationTest;
 import com.sequenceiq.it.cloudbreak.testcase.authorization.AuthUserKeys;
 import com.sequenceiq.it.cloudbreak.util.ResourceCreator;
@@ -39,7 +39,7 @@ public class DataHubListFilteringTest extends AbstractIntegrationTest {
         initializeDefaultBlueprints(testContext);
         resourceCreator.createDefaultImageCatalog(testContext);
         useRealUmsUser(testContext, AuthUserKeys.USER_ENV_CREATOR_B);
-        testContext.given(UmsTestDto.class)
+        testContext.given(UmsResourceTestDto.class)
                 .assignTarget(ImageCatalogTestDto.class.getSimpleName())
                 .withSharedResourceUser()
                 .when(environmentTestClient.assignResourceRole(AuthUserKeys.USER_ENV_CREATOR_B))
@@ -58,7 +58,7 @@ public class DataHubListFilteringTest extends AbstractIntegrationTest {
         resourceCreator.createDefaultDataLake(testContext);
         DistroXTestDto datahubA = resourceCreator.createDefaultDataHubAndWaitAs(testContext, Optional.of(AuthUserKeys.USER_ACCOUNT_ADMIN));
 
-        testContext.given(UmsTestDto.class)
+        testContext.given(UmsResourceTestDto.class)
                 .assignTarget(EnvironmentTestDto.class.getSimpleName())
                 .withDatahubCreator()
                 .when(environmentTestClient.assignResourceRole(AuthUserKeys.USER_ENV_CREATOR_B))
@@ -78,7 +78,7 @@ public class DataHubListFilteringTest extends AbstractIntegrationTest {
         assertUserSeesAll(testContext, AuthUserKeys.USER_ENV_CREATOR_B, dataHubB.getName());
         assertUserDoesNotSeeAnyOf(testContext, AuthUserKeys.USER_ENV_CREATOR_B, datahubA.getName());
 
-        testContext.given(UmsTestDto.class)
+        testContext.given(UmsResourceTestDto.class)
                 .assignTarget(DistroXTestDto.class.getSimpleName())
                 .withDatahubAdmin()
                 .when(environmentTestClient.assignResourceRole(AuthUserKeys.USER_ENV_CREATOR_B))

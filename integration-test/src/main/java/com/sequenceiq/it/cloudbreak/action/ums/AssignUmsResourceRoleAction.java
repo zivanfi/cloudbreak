@@ -9,20 +9,20 @@ import com.sequenceiq.it.cloudbreak.UmsClient;
 import com.sequenceiq.it.cloudbreak.action.Action;
 import com.sequenceiq.it.cloudbreak.actor.CloudbreakUser;
 import com.sequenceiq.it.cloudbreak.context.TestContext;
-import com.sequenceiq.it.cloudbreak.dto.ums.UmsTestDto;
+import com.sequenceiq.it.cloudbreak.dto.ums.UmsResourceTestDto;
 
-public class AssignUmsRoleAction implements Action<UmsTestDto, UmsClient> {
+public class AssignUmsResourceRoleAction implements Action<UmsResourceTestDto, UmsClient> {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(AssignUmsRoleAction.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(AssignUmsResourceRoleAction.class);
 
     private final String userKey;
 
-    public AssignUmsRoleAction(String userKey) {
+    public AssignUmsResourceRoleAction(String userKey) {
         this.userKey = userKey;
     }
 
     @Override
-    public UmsTestDto action(TestContext testContext, UmsTestDto testDto, UmsClient client) throws Exception {
+    public UmsResourceTestDto action(TestContext testContext, UmsResourceTestDto testDto, UmsClient client) throws Exception {
         CloudbreakUser user = testContext.getRealUmsUserByKey(userKey);
         LOGGER.info(String.format("Assigning resourceRole %s over resource %s for user ",
                 testDto.getRequest().getRoleCrn(), testDto.getRequest().getResourceCrn()), user.getCrn());

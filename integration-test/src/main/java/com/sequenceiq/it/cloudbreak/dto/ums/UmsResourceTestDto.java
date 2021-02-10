@@ -11,7 +11,7 @@ import com.sequenceiq.it.cloudbreak.context.TestContext;
 import com.sequenceiq.it.cloudbreak.dto.AbstractTestDto;
 
 @Prototype
-public class UmsTestDto extends AbstractTestDto<AssignResourceRequest, Object, UmsTestDto, UmsClient> {
+public class UmsResourceTestDto extends AbstractTestDto<AssignResourceRequest, Object, UmsResourceTestDto, UmsClient> {
 
     private static final String UMS = "UMS";
 
@@ -29,51 +29,51 @@ public class UmsTestDto extends AbstractTestDto<AssignResourceRequest, Object, U
 
     private static final String SHARED_RESOURCE_USER = "crn:altus:iam:us-west-1:altus:resourceRole:SharedResourceUser";
 
-    public UmsTestDto(TestContext testContext) {
+    public UmsResourceTestDto(TestContext testContext) {
         super(new AssignResourceRequest(), testContext);
     }
 
-    public UmsTestDto() {
-        super(UmsTestDto.class.getSimpleName().toUpperCase());
+    public UmsResourceTestDto() {
+        super(UmsResourceTestDto.class.getSimpleName().toUpperCase());
         setRequest(new AssignResourceRequest());
     }
 
-    public UmsTestDto withDatahubCreator() {
+    public UmsResourceTestDto withDatahubCreator() {
         getRequest().setRoleCrn(DH_CREATOR_CRN);
         return this;
     }
 
-    public UmsTestDto withEnvironmentUser() {
+    public UmsResourceTestDto withEnvironmentUser() {
         getRequest().setRoleCrn(ENV_USER_CRN);
         return this;
     }
 
-    public UmsTestDto withEnvironmentAdmin() {
+    public UmsResourceTestDto withEnvironmentAdmin() {
         getRequest().setRoleCrn(ENV_ADMIN_CRN);
         return this;
     }
 
-    public UmsTestDto withDataSteward() {
+    public UmsResourceTestDto withDataSteward() {
         getRequest().setRoleCrn(DATA_STEWARD_CRN);
         return this;
     }
 
-    public UmsTestDto withSharedResourceUser() {
+    public UmsResourceTestDto withSharedResourceUser() {
         getRequest().setRoleCrn(SHARED_RESOURCE_USER);
         return this;
     }
 
-    public UmsTestDto withDatahubAdmin() {
+    public UmsResourceTestDto withDatahubAdmin() {
         getRequest().setRoleCrn(DH_ADMIN_CRN);
         return this;
     }
 
-    public UmsTestDto withDatahubUser() {
+    public UmsResourceTestDto withDatahubUser() {
         getRequest().setRoleCrn(DH_USER_CRN);
         return this;
     }
 
-    public UmsTestDto assignTarget(String key) {
+    public UmsResourceTestDto assignTarget(String key) {
         try {
             Assignable dto = getTestContext().get(key);
             getRequest().setResourceCrn(dto.getCrn());
@@ -84,12 +84,12 @@ public class UmsTestDto extends AbstractTestDto<AssignResourceRequest, Object, U
         return this;
     }
 
-    public UmsTestDto valid() {
-        return new UmsTestDto();
+    public UmsResourceTestDto valid() {
+        return new UmsResourceTestDto();
     }
 
     @Override
-    public UmsTestDto when(Action<UmsTestDto, UmsClient> action) {
-        return getTestContext().when((UmsTestDto) this, UmsClient.class, action, emptyRunningParameter());
+    public UmsResourceTestDto when(Action<UmsResourceTestDto, UmsClient> action) {
+        return getTestContext().when((UmsResourceTestDto) this, UmsClient.class, action, emptyRunningParameter());
     }
 }

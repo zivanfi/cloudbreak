@@ -15,7 +15,7 @@ import com.sequenceiq.it.cloudbreak.client.EnvironmentTestClient;
 import com.sequenceiq.it.cloudbreak.context.Description;
 import com.sequenceiq.it.cloudbreak.context.TestContext;
 import com.sequenceiq.it.cloudbreak.dto.recipe.RecipeTestDto;
-import com.sequenceiq.it.cloudbreak.dto.ums.UmsTestDto;
+import com.sequenceiq.it.cloudbreak.dto.ums.UmsResourceTestDto;
 import com.sequenceiq.it.cloudbreak.testcase.AbstractIntegrationTest;
 import com.sequenceiq.it.cloudbreak.testcase.authorization.AuthUserKeys;
 import com.sequenceiq.it.cloudbreak.util.ResourceCreator;
@@ -54,7 +54,7 @@ public class RecipeListFilteringTest extends AbstractIntegrationTest {
         assertUserDoesNotSeeAnyOf(testContext, AuthUserKeys.USER_ENV_CREATOR_A, recipeB.getName());
         assertUserDoesNotSeeAnyOf(testContext, AuthUserKeys.USER_ENV_CREATOR_B, recipeA.getName());
 
-        testContext.given(UmsTestDto.class)
+        testContext.given(UmsResourceTestDto.class)
                 .assignTarget(RecipeTestDto.class.getSimpleName())
                 .withSharedResourceUser()
                 .when(environmentTestClient.assignResourceRole(AuthUserKeys.USER_ENV_CREATOR_B))
@@ -64,7 +64,7 @@ public class RecipeListFilteringTest extends AbstractIntegrationTest {
         assertUserSeesAll(testContext, AuthUserKeys.USER_ENV_CREATOR_B, recipeA.getName(), recipeB.getName());
         assertUserSeesAll(testContext, AuthUserKeys.USER_ACCOUNT_ADMIN, recipeA.getName(), recipeB.getName());
 
-        testContext.given(UmsTestDto.class)
+        testContext.given(UmsResourceTestDto.class)
                 .assignTarget(recipeB.getName())
                 .withSharedResourceUser()
                 .when(environmentTestClient.assignResourceRole(AuthUserKeys.USER_ENV_CREATOR_A))

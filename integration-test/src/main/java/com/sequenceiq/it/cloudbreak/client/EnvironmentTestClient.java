@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 import com.sequenceiq.it.cloudbreak.EnvironmentClient;
 import com.sequenceiq.it.cloudbreak.UmsClient;
 import com.sequenceiq.it.cloudbreak.action.Action;
-import com.sequenceiq.it.cloudbreak.action.ums.AssignUmsRoleAction;
+import com.sequenceiq.it.cloudbreak.action.ums.AssignUmsResourceRoleAction;
 import com.sequenceiq.it.cloudbreak.action.v4.environment.EnvironmentCascadingDeleteAction;
 import com.sequenceiq.it.cloudbreak.action.v4.environment.EnvironmentChangeAuthenticationAction;
 import com.sequenceiq.it.cloudbreak.action.v4.environment.EnvironmentChangeCredentialAction;
@@ -25,7 +25,7 @@ import com.sequenceiq.it.cloudbreak.action.v4.environment.EnvironmentRefreshActi
 import com.sequenceiq.it.cloudbreak.action.v4.environment.EnvironmentStartAction;
 import com.sequenceiq.it.cloudbreak.action.v4.environment.EnvironmentStopAction;
 import com.sequenceiq.it.cloudbreak.dto.environment.EnvironmentTestDto;
-import com.sequenceiq.it.cloudbreak.dto.ums.UmsTestDto;
+import com.sequenceiq.it.cloudbreak.dto.ums.UmsResourceTestDto;
 
 @Service
 public class EnvironmentTestClient {
@@ -98,7 +98,7 @@ public class EnvironmentTestClient {
         return new EnvironmentChangeSecurityAccessAction();
     }
 
-    public Action<UmsTestDto, UmsClient> assignResourceRole(String userKey) {
-        return new AssignUmsRoleAction(userKey);
+    public Action<UmsResourceTestDto, UmsClient> assignResourceRole(String userKey) {
+        return new AssignUmsResourceRoleAction(userKey);
     }
 }

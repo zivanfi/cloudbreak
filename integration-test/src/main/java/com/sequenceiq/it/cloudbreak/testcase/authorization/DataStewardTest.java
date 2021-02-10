@@ -17,7 +17,7 @@ import com.sequenceiq.it.cloudbreak.context.RunningParameter;
 import com.sequenceiq.it.cloudbreak.context.TestContext;
 import com.sequenceiq.it.cloudbreak.dto.environment.EnvironmentTestDto;
 import com.sequenceiq.it.cloudbreak.dto.sdx.SdxInternalTestDto;
-import com.sequenceiq.it.cloudbreak.dto.ums.UmsTestDto;
+import com.sequenceiq.it.cloudbreak.dto.ums.UmsResourceTestDto;
 import com.sequenceiq.it.cloudbreak.testcase.AbstractIntegrationTest;
 
 public class DataStewardTest extends AbstractIntegrationTest {
@@ -51,7 +51,7 @@ public class DataStewardTest extends AbstractIntegrationTest {
         createDefaultEnvironment(testContext);
 
         testContext
-                .given(UmsTestDto.class)
+                .given(UmsResourceTestDto.class)
                 .assignTarget(EnvironmentTestDto.class.getSimpleName())
                 .withEnvironmentAdmin()
                 .when(environmentTestClient.assignResourceRole(AuthUserKeys.ENV_ADMIN_A))

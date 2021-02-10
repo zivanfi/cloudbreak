@@ -16,7 +16,7 @@ import com.sequenceiq.it.cloudbreak.context.Description;
 import com.sequenceiq.it.cloudbreak.context.RunningParameter;
 import com.sequenceiq.it.cloudbreak.context.TestContext;
 import com.sequenceiq.it.cloudbreak.dto.credential.CredentialTestDto;
-import com.sequenceiq.it.cloudbreak.dto.ums.UmsTestDto;
+import com.sequenceiq.it.cloudbreak.dto.ums.UmsResourceTestDto;
 import com.sequenceiq.it.cloudbreak.testcase.AbstractIntegrationTest;
 import com.sequenceiq.it.cloudbreak.testcase.authorization.AuthUserKeys;
 import com.sequenceiq.it.cloudbreak.util.ResourceCreator;
@@ -61,13 +61,13 @@ public class CredentialListFilteringTest extends AbstractIntegrationTest {
         assertUserDoesNotSeeAnyOf(testContext, AuthUserKeys.USER_ENV_CREATOR_A, credentialB.getName());
         assertUserDoesNotSeeAnyOf(testContext, AuthUserKeys.USER_ENV_CREATOR_B, credentialA.getName());
 
-        testContext.given(UmsTestDto.class)
+        testContext.given(UmsResourceTestDto.class)
                 .assignTarget(CredentialTestDto.class.getSimpleName())
                 .withSharedResourceUser()
                 .when(environmentTestClient.assignResourceRole(AuthUserKeys.USER_ENV_CREATOR_B))
                 .validate();
 
-        testContext.given(UmsTestDto.class)
+        testContext.given(UmsResourceTestDto.class)
                 .assignTarget(credentialB.getName())
                 .withSharedResourceUser()
                 .when(environmentTestClient.assignResourceRole(AuthUserKeys.USER_ENV_CREATOR_A))

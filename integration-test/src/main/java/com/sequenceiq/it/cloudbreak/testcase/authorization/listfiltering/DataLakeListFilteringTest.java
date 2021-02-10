@@ -17,7 +17,7 @@ import com.sequenceiq.it.cloudbreak.dto.credential.CredentialTestDto;
 import com.sequenceiq.it.cloudbreak.dto.environment.EnvironmentTestDto;
 import com.sequenceiq.it.cloudbreak.dto.imagecatalog.ImageCatalogTestDto;
 import com.sequenceiq.it.cloudbreak.dto.sdx.SdxInternalTestDto;
-import com.sequenceiq.it.cloudbreak.dto.ums.UmsTestDto;
+import com.sequenceiq.it.cloudbreak.dto.ums.UmsResourceTestDto;
 import com.sequenceiq.it.cloudbreak.testcase.AbstractIntegrationTest;
 import com.sequenceiq.it.cloudbreak.testcase.authorization.AuthUserKeys;
 import com.sequenceiq.it.cloudbreak.util.ResourceCreator;
@@ -39,7 +39,7 @@ public class DataLakeListFilteringTest extends AbstractIntegrationTest {
         initializeDefaultBlueprints(testContext);
         resourceCreator.createDefaultImageCatalog(testContext);
         useRealUmsUser(testContext, AuthUserKeys.USER_ENV_CREATOR_B);
-        testContext.given(UmsTestDto.class)
+        testContext.given(UmsResourceTestDto.class)
                 .assignTarget(ImageCatalogTestDto.class.getSimpleName())
                 .withSharedResourceUser()
                 .when(environmentTestClient.assignResourceRole(AuthUserKeys.USER_ENV_CREATOR_B))
@@ -69,13 +69,13 @@ public class DataLakeListFilteringTest extends AbstractIntegrationTest {
         assertUserDoesNotSeeAnyOf(testContext, AuthUserKeys.USER_ENV_CREATOR_A, dataLakeB.getName());
         assertUserDoesNotSeeAnyOf(testContext, AuthUserKeys.USER_ENV_CREATOR_B, dataLakeA.getName());
 
-        testContext.given(UmsTestDto.class)
+        testContext.given(UmsResourceTestDto.class)
                 .assignTarget(EnvironmentTestDto.class.getSimpleName())
                 .withEnvironmentAdmin()
                 .when(environmentTestClient.assignResourceRole(AuthUserKeys.USER_ENV_CREATOR_B))
                 .validate();
 
-        testContext.given(UmsTestDto.class)
+        testContext.given(UmsResourceTestDto.class)
                 .assignTarget(environmentB.getName())
                 .withEnvironmentUser()
                 .when(environmentTestClient.assignResourceRole(AuthUserKeys.USER_ENV_CREATOR_A))

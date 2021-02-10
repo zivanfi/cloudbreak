@@ -1,15 +1,18 @@
 package com.sequenceiq.it.cloudbreak;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
+import com.cloudera.thunderhead.service.usermanagement.UserManagementProto.MachineUser;
 import com.sequenceiq.cloudbreak.auth.altus.GrpcUmsClient;
 import com.sequenceiq.cloudbreak.auth.altus.config.UmsChannelConfig;
 import com.sequenceiq.cloudbreak.auth.altus.config.UmsClientConfig;
 import com.sequenceiq.flow.api.FlowPublicEndpoint;
 import com.sequenceiq.it.cloudbreak.context.TestContext;
 import com.sequenceiq.it.cloudbreak.dto.CloudbreakTestDto;
-import com.sequenceiq.it.cloudbreak.dto.ums.UmsTestDto;
+import com.sequenceiq.it.cloudbreak.dto.ums.UmsResourceTestDto;
+import com.sequenceiq.it.cloudbreak.dto.ums.UmsRoleTestDto;
 import com.sequenceiq.it.cloudbreak.exception.TestFailException;
 import com.sequenceiq.it.cloudbreak.util.wait.service.WaitObject;
 import com.sequenceiq.it.cloudbreak.util.wait.service.WaitService;
@@ -58,8 +61,13 @@ public class UmsClient extends MicroserviceClient {
         return umsClient;
     }
 
+    public MachineUser getMachineUserForUser(String actorCrn, String userCrn, String accountId) {
+        return getUmsClient().getMachineUserDetails(actorCrn, userCrn, accountId, Optional.of(null));
+    }
+
     @Override
     public Set<String> supportedTestDtos() {
-        return Set.of(UmsTestDto.class.getSimpleName());
+        return Set.of(UmsResourceTestDto.class.getSimpleName(),
+                UmsRoleTestDto.class.getSimpleName());
     }
 }

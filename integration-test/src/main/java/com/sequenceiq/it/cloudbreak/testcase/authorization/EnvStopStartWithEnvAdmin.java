@@ -30,7 +30,7 @@ import com.sequenceiq.it.cloudbreak.context.TestContext;
 import com.sequenceiq.it.cloudbreak.dto.credential.CredentialTestDto;
 import com.sequenceiq.it.cloudbreak.dto.distrox.DistroXTestDto;
 import com.sequenceiq.it.cloudbreak.dto.environment.EnvironmentTestDto;
-import com.sequenceiq.it.cloudbreak.dto.ums.UmsTestDto;
+import com.sequenceiq.it.cloudbreak.dto.ums.UmsResourceTestDto;
 import com.sequenceiq.it.cloudbreak.testcase.AbstractIntegrationTest;
 import com.sequenceiq.it.cloudbreak.util.AuthorizationTestUtil;
 
@@ -100,7 +100,7 @@ public class EnvStopStartWithEnvAdmin extends AbstractIntegrationTest {
 
         testContext
                 .given(EnvironmentTestDto.class)
-                .given(UmsTestDto.class)
+                .given(UmsResourceTestDto.class)
                 .assignTarget(EnvironmentTestDto.class.getSimpleName())
                 .withDatahubCreator()
                 .when(environmentTestClient.assignResourceRole(AuthUserKeys.ENV_CREATOR_B))

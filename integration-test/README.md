@@ -10,7 +10,6 @@ This is a standalone [Spring Boot](https://spring.io/projects/spring-boot) appli
 2. After a successful build, you should find the `integration-test.jar` file at `integration-test/build/libs/`
 
 ## Quickstart setup of Integration tests with required parameters
-
 1. You need a config file under `~/.dp/config`
  *Note:*
  This can be achieved by installing the [DP CLI](https://github.com/hortonworks/cb-cli) on your machine then [configure](https://github.com/hortonworks/cb-cli#configure) it.
@@ -87,7 +86,7 @@ Test cases are located under folder `https://github.com/hortonworks/cloudbreak/t
  - Integration Tests: `mock`
  - End To End Tests: `e2e`
  - Smoke Tests: `smoke`
- - Real UMS Tests: `authorization` (UMS host and cache timeout values needs to be changed before running these tests)
+ - Real UMS Tests: `authorization`
 
 *Note:*
 [E2E tests](https://github.com/hortonworks/cloudbreak/tree/master/integration-test/src/main/java/com/sequenceiq/it/cloudbreak/testcase/e2e) are organized into domain-specific packages (distrox, sdx etc.).
@@ -110,3 +109,35 @@ To help the reader to find out what tests are available for a certain platform t
     - class move
     - accidental moving or renaming of classes will be guarded by TestNG (will throw a not found exception on moved classes)
     - however, testNG currently does not fail if an included method is not found, just ignores it - a quite dangeorous behavior in my mind 
+
+## Authorization tests
+
+Real UMS and Legacy AuthZ test cases are special kind of Mock tests:
+- use real life Manowar Dev UMS
+- use mocked cloud-vendor infrastructure (so any kind of AWS/Azure/GCP real resource will not be spin up)
+- internally use CBD just like a regular integration test
+  
+Related test cases are present at [testcase/authorization](src/main/java/com/sequenceiq/it/cloudbreak/testcase/authorization) folder.
+
+### Legacy AuthZ tests
+Legacy tests require custom account parameter at `application.yml`:
+```
+integrationtest:
+   ums:
+     accountKey: legacy
+     deploymentKey: dev
+```
+### Locally running Authorization tests
+- [Install the Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest) on your local machine if it has not been installed yet. Read through the [Sign in with Azure CLI](https://docs.microsoft.com/en-us/cli/azure/authenticate-azure-cli?view=azure-cli-latest) documentation.
+- UMS host and cache timeout values need to be changed:
+  - `altus.ums.host`
+  - `altus.ums.rights.cache.seconds.ttl`: Tests are using `Thread.sleep(7000)` to wait for UMS rights cache to expire. So locally the default cache need to be set to 5 seconds.
+  ```
+    export UMS_HOST="ums.thunderhead-dev.cloudera.com"
+    export CB_JAVA_OPTS="-Daltus.ums.rights.cache.seconds.ttl=5 -Drest.debug=true -Dmock.spi.endpoint=https://test:9443"
+    export REDBEAMS_JAVA_OPTS="-Daltus.ums.rights.cache.seconds.ttl=5"
+    export DATALAKE_JAVA_OPTS="-Daltus.ums.rights.cache.seconds.ttl=5"
+    export FREEIPA_JAVA_OPTS="-Daltus.ums.rights.cache.seconds.ttl=5"
+    export ENVIRONMENT_JAVA_OPTS="-Daltus.ums.rights.cache.seconds.ttl=5"
+  ```
+- `make fetch-secrets` is needed to can initialize real UMS or Legacy users for authorization tests. *Fetching secrets accomplished via Azure CLI from Cloudbreak Team Azure Key Vault.*

@@ -1,4 +1,10 @@
 name: "legacy-authz-mock-tests"
+# These tests require custom account parameter at application.yml:
+# integrationtest:
+#   ums:
+#     accountKey: legacy
+#     deploymentKey: dev
+
 tests:
   - name: "legacy_authz_mock_tests"
     classes:

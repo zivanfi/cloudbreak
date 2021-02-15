@@ -1,12 +1,9 @@
 package com.sequenceiq.it.cloudbreak.testcase.users.virtualgroups;
 
-import static com.sequenceiq.it.cloudbreak.context.RunningParameter.expectedMessage;
-
 import java.util.List;
 import java.util.Map;
 
 import javax.inject.Inject;
-import javax.ws.rs.ForbiddenException;
 
 import org.testng.annotations.Test;
 
@@ -30,7 +27,7 @@ import com.sequenceiq.it.cloudbreak.context.TestContext;
 import com.sequenceiq.it.cloudbreak.dto.credential.CredentialTestDto;
 import com.sequenceiq.it.cloudbreak.dto.environment.EnvironmentTestDto;
 import com.sequenceiq.it.cloudbreak.dto.freeipa.FreeIpaTestDto;
-import com.sequenceiq.it.cloudbreak.dto.ums.UmsResourceTestDto;
+import com.sequenceiq.it.cloudbreak.dto.ums.UmsRoleTestDto;
 import com.sequenceiq.it.cloudbreak.testcase.authorization.AuthUserKeys;
 import com.sequenceiq.it.cloudbreak.testcase.mock.AbstractMockTest;
 import com.sequenceiq.it.cloudbreak.util.AuthorizationTestUtil;
@@ -58,40 +55,40 @@ public class EnvironmentVirtualGroupsTest extends AbstractMockTest {
     @Override
     protected void setupTest(TestContext testContext) {
         useRealUmsUser(testContext, AuthUserKeys.ACCOUNT_ADMIN);
-        useRealUmsUser(testContext, AuthUserKeys.ENV_CREATOR_B);
+        useRealUmsUser(testContext, AuthUserKeys.ENV_ADMIN_A);
         useRealUmsUser(testContext, AuthUserKeys.ENV_CREATOR_A);
-        useRealUmsUser(testContext, AuthUserKeys.ZERO_RIGHTS);
     }
 
     @Test(dataProvider = TEST_CONTEXT_WITH_MOCK)
     @Description(
-            given = "there is a running env service",
-            when = "valid create environment request is sent",
-            then = "environment should be created but unauthorized users should not be able to access it")
+            given = "there is a running Cloudbreak",
+            when = "a new environment should be created with CB-AccountAdmin" +
+                   "CB-Machine-EnvAdminA should be added to the running environment" +
+                   "CB-Machine-EnvCreatorA user should be added to the running environment",
+            then = "a new user shou")
     public void testCreateEnvironment(TestContext testContext) {
         useRealUmsUser(testContext, AuthUserKeys.ENV_CREATOR_A);
         testContext
                 .given(CredentialTestDto.class)
                 .when(credentialTestClient.create())
                 .given(EnvironmentTestDto.class)
-                .withCreateFreeIpa(false)
+                    .withCreateFreeIpa(false)
                 .when(environmentTestClient.create())
                 .await(EnvironmentStatus.AVAILABLE)
-                // testing unauthorized calls for environment
-                .whenException(environmentTestClient.describe(), ForbiddenException.class, expectedMessage("Doesn't have 'environments/describeEnvironment'" +
-                        " right on 'environment' " + environmentPattern(testContext)).withWho(cloudbreakActor.useRealUmsUser(AuthUserKeys.ENV_CREATOR_B)))
-                .whenException(environmentTestClient.describe(), ForbiddenException.class, expectedMessage("Doesn't have 'environments/describeEnvironment'" +
-                        " right on 'environment' " + environmentPattern(testContext)).withWho(cloudbreakActor.useRealUmsUser(AuthUserKeys.ZERO_RIGHTS)))
+                .when(environmentTestClient.describe())
+                .given(FreeIpaTestDto.class)
+                    .withCatalog(getImageCatalogMockServerSetup().getFreeIpaImageCatalogUrl())
+                .when(freeIpaTestClient.create())
+                .await(Status.AVAILABLE)
+                .when(freeIpaTestClient.describe())
                 .validate();
-
-        testFreeipaCreation(testContext);
 
         testContext
                 //after assignment describe should work for the environment
-                .given(UmsResourceTestDto.class)
+                .given(UmsRoleTestDto.class)
                 .assignTarget(EnvironmentTestDto.class.getSimpleName())
-                .withDatahubCreator()
-                .when(environmentTestClient.assignResourceRole(AuthUserKeys.ENV_CREATOR_B))
+                    .withEnvironmentAdmin()
+                .when(environmentTestClient.assignUserRole(AuthUserKeys.ENV_ADMIN_A))
                 .withEnvironmentUser()
                 .when(environmentTestClient.assignResourceRole(AuthUserKeys.ENV_CREATOR_B))
                 .given(EnvironmentTestDto.class)
@@ -129,37 +126,4 @@ public class EnvironmentVirtualGroupsTest extends AbstractMockTest {
         authorizationTestUtil.testCheckResourceRightUtil(testContext, AuthUserKeys.ZERO_RIGHTS, new CheckResourceRightFalseAssertion(),
                 resourceRightsToCheckForDhOnEnv, utilTestClient);
     }
-
-    private void testFreeipaCreation(TestContext testContext) {
-        useRealUmsUser(testContext, AuthUserKeys.ENV_CREATOR_A);
-        testContext
-                //testing authorized freeipa calls for the environment
-                .given(FreeIpaTestDto.class)
-                .withCatalog(getImageCatalogMockServerSetup().getFreeIpaImageCatalogUrl())
-                .when(freeIpaTestClient.create())
-                .await(Status.AVAILABLE)
-                .when(freeIpaTestClient.describe())
-                .when(freeIpaTestClient.stop())
-                .await(Status.STOPPED)
-                .when(freeIpaTestClient.start())
-                .await(Status.AVAILABLE)
-                //testing unathorized freeipa calls for the environment
-                .whenException(freeIpaTestClient.describe(), ForbiddenException.class, expectedMessage("Doesn't have 'environments/describeEnvironment'" +
-                        " right on 'environment' " + environmentFreeIpaPattern(testContext)).withWho(cloudbreakActor.useRealUmsUser(AuthUserKeys.ENV_CREATOR_B)))
-                .whenException(freeIpaTestClient.stop(), ForbiddenException.class, expectedMessage("Doesn't have 'environments/stopEnvironment' right on" +
-                        " 'environment' " + environmentFreeIpaPattern(testContext)).withWho(cloudbreakActor.useRealUmsUser(AuthUserKeys.ENV_CREATOR_B)))
-                .whenException(freeIpaTestClient.start(), ForbiddenException.class, expectedMessage("Doesn't have 'environments/startEnvironment' right on" +
-                        " 'environment' " + environmentFreeIpaPattern(testContext)).withWho(cloudbreakActor.useRealUmsUser(AuthUserKeys.ENV_CREATOR_B)))
-                .validate();
-    }
-
-    private String environmentPattern(TestContext testContext) {
-        return String.format("[\\[]name='%s', crn='crn:cdp:environments:us-west-1:.*:environment:.*[]]\\.",
-                testContext.get(EnvironmentTestDto.class).getName());
-    }
-
-    private String environmentFreeIpaPattern(TestContext testContext) {
-        return String.format("[\\[]crn='crn:cdp:environments:us-west-1:.*:environment:.*[]]\\.");
-    }
-
 }

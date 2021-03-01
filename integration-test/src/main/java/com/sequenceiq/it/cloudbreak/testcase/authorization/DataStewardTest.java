@@ -12,6 +12,7 @@ import org.testng.annotations.Test;
 import com.sequenceiq.it.cloudbreak.actor.CloudbreakActor;
 import com.sequenceiq.it.cloudbreak.client.EnvironmentTestClient;
 import com.sequenceiq.it.cloudbreak.client.SdxTestClient;
+import com.sequenceiq.it.cloudbreak.client.UmsTestClient;
 import com.sequenceiq.it.cloudbreak.context.Description;
 import com.sequenceiq.it.cloudbreak.context.RunningParameter;
 import com.sequenceiq.it.cloudbreak.context.TestContext;
@@ -30,6 +31,9 @@ public class DataStewardTest extends AbstractIntegrationTest {
 
     @Inject
     private CloudbreakActor cloudbreakActor;
+
+    @Inject
+    private UmsTestClient umsTestClient;
 
     @Override
     protected void setupTest(TestContext testContext) {
@@ -54,9 +58,9 @@ public class DataStewardTest extends AbstractIntegrationTest {
                 .given(UmsResourceTestDto.class)
                 .assignTarget(EnvironmentTestDto.class.getSimpleName())
                 .withEnvironmentAdmin()
-                .when(environmentTestClient.assignResourceRole(AuthUserKeys.ENV_ADMIN_A))
+                .when(umsTestClient.assignResourceRole(AuthUserKeys.ENV_ADMIN_A))
                 .withDataSteward()
-                .when(environmentTestClient.assignResourceRole(AuthUserKeys.ENV_DATA_STEWARD))
+                .when(umsTestClient.assignResourceRole(AuthUserKeys.ENV_DATA_STEWARD))
                 .given(EnvironmentTestDto.class)
                 .when(environmentTestClient.describe(), RunningParameter.who(cloudbreakActor.useRealUmsUser(AuthUserKeys.ENV_DATA_STEWARD)))
                 .whenException(environmentTestClient.stop(), ForbiddenException.class, expectedMessage("Doesn't have 'environments/stopEnvironment'" +

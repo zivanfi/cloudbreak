@@ -14,6 +14,7 @@ import com.sequenceiq.it.cloudbreak.actor.CloudbreakActor;
 import com.sequenceiq.it.cloudbreak.client.CredentialTestClient;
 import com.sequenceiq.it.cloudbreak.client.EnvironmentTestClient;
 import com.sequenceiq.it.cloudbreak.client.SdxTestClient;
+import com.sequenceiq.it.cloudbreak.client.UmsTestClient;
 import com.sequenceiq.it.cloudbreak.context.Description;
 import com.sequenceiq.it.cloudbreak.context.MockedTestContext;
 import com.sequenceiq.it.cloudbreak.context.RunningParameter;
@@ -42,6 +43,9 @@ public class DatalakeDatahubCreateAuthTest extends AbstractIntegrationTest {
 
     @Inject
     private CloudbreakActor cloudbreakActor;
+
+    @Inject
+    private UmsTestClient umsTestClient;
 
     @Override
     protected void setupTest(TestContext testContext) {
@@ -73,9 +77,9 @@ public class DatalakeDatahubCreateAuthTest extends AbstractIntegrationTest {
                 .given(UmsResourceTestDto.class)
                 .assignTarget(EnvironmentTestDto.class.getSimpleName())
                 .withDatahubCreator()
-                .when(environmentTestClient.assignResourceRole(AuthUserKeys.ENV_CREATOR_B))
+                .when(umsTestClient.assignResourceRole(AuthUserKeys.ENV_CREATOR_B))
                 .withEnvironmentUser()
-                .when(environmentTestClient.assignResourceRole(AuthUserKeys.ENV_CREATOR_B))
+                .when(umsTestClient.assignResourceRole(AuthUserKeys.ENV_CREATOR_B))
                 .given(clouderaManager, ClouderaManagerTestDto.class)
                 .given(cluster, ClusterTestDto.class)
                 .withClouderaManager(clouderaManager)

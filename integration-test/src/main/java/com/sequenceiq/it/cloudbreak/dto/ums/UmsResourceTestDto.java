@@ -73,13 +73,13 @@ public class UmsResourceTestDto extends AbstractTestDto<AssignResourceRequest, O
         return this;
     }
 
-    public UmsResourceTestDto assignTarget(String key) {
+    public UmsResourceTestDto assignTarget(String resourceKey) {
         try {
-            Assignable dto = getTestContext().get(key);
+            Assignable dto = getTestContext().get(resourceKey);
             getRequest().setResourceCrn(dto.getCrn());
         } catch (ClassCastException e) {
             throw new IllegalArgumentException(String.format("TestContext member with key %s does not implement %s interface",
-                    key, Assignable.class.getCanonicalName()), e);
+                    resourceKey, Assignable.class.getCanonicalName()), e);
         }
         return this;
     }

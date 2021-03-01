@@ -6,7 +6,7 @@ import com.sequenceiq.it.cloudbreak.Prototype;
 import com.sequenceiq.it.cloudbreak.UmsClient;
 import com.sequenceiq.it.cloudbreak.action.Action;
 import com.sequenceiq.it.cloudbreak.action.ums.AssignRoleRequest;
-import com.sequenceiq.it.cloudbreak.assign.Assignable;
+import com.sequenceiq.it.cloudbreak.actor.CloudbreakUser;
 import com.sequenceiq.it.cloudbreak.context.TestContext;
 import com.sequenceiq.it.cloudbreak.dto.AbstractTestDto;
 
@@ -122,19 +122,14 @@ public class UmsRoleTestDto extends AbstractTestDto<AssignRoleRequest, Object, U
         return this;
     }
 
-    public UmsRoleTestDto assignTarget(String key) {
-        try {
-            Assignable dto = getTestContext().get(key);
-            getRequest().setRoleCrn(dto.getCrn());
-        } catch (ClassCastException e) {
-            throw new IllegalArgumentException(String.format("TestContext member with key %s does not implement %s interface",
-                    key, Assignable.class.getCanonicalName()), e);
-        }
+    public UmsRoleTestDto withActingUser() {
+        CloudbreakUser user = getTestContext().getActingUser();
+        getRequest().setUserCrn(user.getCrn());
         return this;
     }
 
     public UmsRoleTestDto valid() {
-        return new UmsRoleTestDto();
+        return withActingUser();
     }
 
     @Override

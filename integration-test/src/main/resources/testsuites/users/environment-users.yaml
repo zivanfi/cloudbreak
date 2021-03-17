@@ -1,0 +1,5 @@
+name: "environment_users"
+tests:
+  - name: "environment_users"
+    classes:
+      - name: com.sequenceiq.it.cloudbreak.testcase.users.virtualgroups.VirtualGroupTest

@@ -11,7 +11,7 @@ import org.testng.annotations.Test;
 
 import com.sequenceiq.cloudbreak.api.endpoint.v4.imagecatalog.responses.ImageCatalogV4Response;
 import com.sequenceiq.it.cloudbreak.CloudbreakClient;
-import com.sequenceiq.it.cloudbreak.client.EnvironmentTestClient;
+import com.sequenceiq.it.cloudbreak.client.UmsTestClient;
 import com.sequenceiq.it.cloudbreak.context.Description;
 import com.sequenceiq.it.cloudbreak.context.TestContext;
 import com.sequenceiq.it.cloudbreak.dto.imagecatalog.ImageCatalogTestDto;
@@ -23,7 +23,7 @@ import com.sequenceiq.it.cloudbreak.util.ResourceCreator;
 public class ImageCatalogListFilteringTest extends AbstractIntegrationTest {
 
     @Inject
-    private EnvironmentTestClient environmentTestClient;
+    private UmsTestClient umsTestClient;
 
     @Inject
     private ResourceCreator resourceCreator;
@@ -57,13 +57,13 @@ public class ImageCatalogListFilteringTest extends AbstractIntegrationTest {
         testContext.given(UmsResourceTestDto.class)
                 .assignTarget(ImageCatalogTestDto.class.getSimpleName())
                 .withSharedResourceUser()
-                .when(environmentTestClient.assignResourceRole(AuthUserKeys.USER_ENV_CREATOR_B))
+                .when(umsTestClient.assignResourceRole(AuthUserKeys.USER_ENV_CREATOR_B))
                 .validate();
 
         testContext.given(UmsResourceTestDto.class)
                 .assignTarget(imageCatalogB.getName())
                 .withSharedResourceUser()
-                .when(environmentTestClient.assignResourceRole(AuthUserKeys.USER_ENV_CREATOR_A))
+                .when(umsTestClient.assignResourceRole(AuthUserKeys.USER_ENV_CREATOR_A))
                 .validate();
 
         assertUserSeesAll(testContext, AuthUserKeys.USER_ENV_CREATOR_A, imageCatalogA.getName(), imageCatalogB.getName());

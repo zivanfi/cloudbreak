@@ -14,6 +14,8 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
+import javax.ws.rs.ForbiddenException;
+import javax.ws.rs.NotFoundException;
 
 import com.sequenceiq.cloudbreak.common.mappable.CloudPlatform;
 import com.sequenceiq.common.api.telemetry.request.TelemetryRequest;
@@ -87,6 +89,10 @@ public class EnvironmentTestDto
 
     public String getParentEnvironmentName() {
         return getRequest().getParentEnvironmentName();
+    }
+
+    public String getAdminGroupName() {
+        return getRequest().getAdminGroupName();
     }
 
     @Override
@@ -306,8 +312,15 @@ public class EnvironmentTestDto
     public void cleanUp(TestContext context, MicroserviceClient client) {
         LOGGER.info("Cleaning up environment with name: {}", getName());
         if (getResponse() != null) {
-            when(environmentTestClient.cascadingDelete(), key("delete-environment-" + getName()).withSkipOnFail(false));
-            await(ARCHIVED, new RunningParameter().withSkipOnFail(true));
+            try {
+                when(environmentTestClient.cascadingDelete(), key("delete-environment-" + getName()).withSkipOnFail(false));
+                await(ARCHIVED, new RunningParameter().withSkipOnFail(true));
+            } catch (NotFoundException e) {
+                LOGGER.info(String.format("No environment found with name '%s'! It already has been deleted successfully.", getName()));
+            } catch (ForbiddenException e) {
+                when(environmentTestClient.cascadingDelete(), key("delete-environment-" + getName()).withSkipOnFail(false).switchToAdmin());
+                await(ARCHIVED, new RunningParameter().withSkipOnFail(true));
+            }
         } else {
             LOGGER.info("Environment: {} response is null!", getName());
         }

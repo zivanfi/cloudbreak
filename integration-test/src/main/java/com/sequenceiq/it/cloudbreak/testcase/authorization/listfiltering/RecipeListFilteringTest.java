@@ -11,7 +11,7 @@ import org.testng.annotations.Test;
 
 import com.sequenceiq.cloudbreak.api.endpoint.v4.recipes.responses.RecipeViewV4Response;
 import com.sequenceiq.it.cloudbreak.CloudbreakClient;
-import com.sequenceiq.it.cloudbreak.client.EnvironmentTestClient;
+import com.sequenceiq.it.cloudbreak.client.UmsTestClient;
 import com.sequenceiq.it.cloudbreak.context.Description;
 import com.sequenceiq.it.cloudbreak.context.TestContext;
 import com.sequenceiq.it.cloudbreak.dto.recipe.RecipeTestDto;
@@ -23,7 +23,7 @@ import com.sequenceiq.it.cloudbreak.util.ResourceCreator;
 public class RecipeListFilteringTest extends AbstractIntegrationTest {
 
     @Inject
-    private EnvironmentTestClient environmentTestClient;
+    private UmsTestClient umsTestClient;
 
     @Inject
     private ResourceCreator resourceCreator;
@@ -57,7 +57,7 @@ public class RecipeListFilteringTest extends AbstractIntegrationTest {
         testContext.given(UmsResourceTestDto.class)
                 .assignTarget(RecipeTestDto.class.getSimpleName())
                 .withSharedResourceUser()
-                .when(environmentTestClient.assignResourceRole(AuthUserKeys.USER_ENV_CREATOR_B))
+                .when(umsTestClient.assignResourceRole(AuthUserKeys.USER_ENV_CREATOR_B))
                 .validate();
 
         assertUserSeesAll(testContext, AuthUserKeys.USER_ENV_CREATOR_A, recipeA.getName());
@@ -67,7 +67,7 @@ public class RecipeListFilteringTest extends AbstractIntegrationTest {
         testContext.given(UmsResourceTestDto.class)
                 .assignTarget(recipeB.getName())
                 .withSharedResourceUser()
-                .when(environmentTestClient.assignResourceRole(AuthUserKeys.USER_ENV_CREATOR_A))
+                .when(umsTestClient.assignResourceRole(AuthUserKeys.USER_ENV_CREATOR_A))
                 .validate();
 
         assertUserSeesAll(testContext, AuthUserKeys.USER_ENV_CREATOR_A, recipeA.getName(), recipeB.getName());

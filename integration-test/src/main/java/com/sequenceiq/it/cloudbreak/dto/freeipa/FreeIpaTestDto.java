@@ -322,6 +322,22 @@ public class FreeIpaTestDto extends AbstractFreeIpaTestDto<CreateFreeIpaRequest,
         return getName();
     }
 
+    public String getAdminGroupName() {
+        return getRequest().getFreeIpa().getAdminGroupName();
+    }
+
+    public String getAdminPassword() {
+        return getRequest().getFreeIpa().getAdminPassword();
+    }
+
+    public String getHostname() {
+        return getRequest().getFreeIpa().getHostname();
+    }
+
+    public String getDomain() {
+        return getRequest().getFreeIpa().getDomain();
+    }
+
     @Override
     public void cleanUp(TestContext context, MicroserviceClient cloudbreakClient) {
         LOGGER.info("Cleaning up freeIpa with name: {}", getName());

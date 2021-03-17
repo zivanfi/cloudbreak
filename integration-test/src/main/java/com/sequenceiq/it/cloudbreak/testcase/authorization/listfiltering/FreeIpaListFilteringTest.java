@@ -11,7 +11,7 @@ import org.testng.annotations.Test;
 
 import com.sequenceiq.freeipa.api.v1.freeipa.stack.model.list.ListFreeIpaResponse;
 import com.sequenceiq.it.cloudbreak.FreeIpaClient;
-import com.sequenceiq.it.cloudbreak.client.EnvironmentTestClient;
+import com.sequenceiq.it.cloudbreak.client.UmsTestClient;
 import com.sequenceiq.it.cloudbreak.context.Description;
 import com.sequenceiq.it.cloudbreak.context.TestContext;
 import com.sequenceiq.it.cloudbreak.dto.credential.CredentialTestDto;
@@ -25,7 +25,7 @@ import com.sequenceiq.it.cloudbreak.util.ResourceCreator;
 public class FreeIpaListFilteringTest extends AbstractMockTest {
 
     @Inject
-    private EnvironmentTestClient environmentTestClient;
+    private UmsTestClient umsTestClient;
 
     @Inject
     private ResourceCreator resourceCreator;
@@ -63,13 +63,13 @@ public class FreeIpaListFilteringTest extends AbstractMockTest {
         testContext.given(UmsResourceTestDto.class)
                 .assignTarget(EnvironmentTestDto.class.getSimpleName())
                 .withEnvironmentAdmin()
-                .when(environmentTestClient.assignResourceRole(AuthUserKeys.USER_ENV_CREATOR_B))
+                .when(umsTestClient.assignResourceRole(AuthUserKeys.USER_ENV_CREATOR_B))
                 .validate();
 
         testContext.given(UmsResourceTestDto.class)
                 .assignTarget(environmentB.getName())
                 .withEnvironmentUser()
-                .when(environmentTestClient.assignResourceRole(AuthUserKeys.USER_ENV_CREATOR_A))
+                .when(umsTestClient.assignResourceRole(AuthUserKeys.USER_ENV_CREATOR_A))
                 .validate();
 
         assertUserSeesAll(testContext, AuthUserKeys.USER_ENV_CREATOR_A, environmentA.getCrn(), environmentB.getCrn());

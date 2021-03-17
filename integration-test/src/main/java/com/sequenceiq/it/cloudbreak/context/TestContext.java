@@ -991,7 +991,7 @@ public abstract class TestContext implements ApplicationContextAware {
         return entity;
     }
 
-    private <E extends Exception> void exceptionValidation(Class<E> expectedException, Exception actualException, String entityKey,
+    public <E extends Exception> void exceptionValidation(Class<E> expectedException, Exception actualException, String entityKey,
             RunningParameter runningParameter, String stepKey) {
         if (!actualException.getClass().equals(expectedException)) {
             String message = String.format("Expected exception (%s) does not match with the actual exception (%s).",

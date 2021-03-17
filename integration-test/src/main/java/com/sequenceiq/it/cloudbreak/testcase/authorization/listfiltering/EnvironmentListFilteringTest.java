@@ -11,6 +11,7 @@ import org.testng.annotations.Test;
 import com.sequenceiq.environment.api.v1.environment.model.response.SimpleEnvironmentResponse;
 import com.sequenceiq.it.cloudbreak.actor.CloudbreakActor;
 import com.sequenceiq.it.cloudbreak.client.EnvironmentTestClient;
+import com.sequenceiq.it.cloudbreak.client.UmsTestClient;
 import com.sequenceiq.it.cloudbreak.context.Description;
 import com.sequenceiq.it.cloudbreak.context.RunningParameter;
 import com.sequenceiq.it.cloudbreak.context.TestContext;
@@ -22,6 +23,9 @@ import com.sequenceiq.it.cloudbreak.testcase.authorization.AuthUserKeys;
 import com.sequenceiq.it.cloudbreak.util.ResourceCreator;
 
 public class EnvironmentListFilteringTest extends AbstractIntegrationTest {
+
+    @Inject
+    private UmsTestClient umsTestClient;
 
     @Inject
     private EnvironmentTestClient environmentTestClient;
@@ -66,13 +70,13 @@ public class EnvironmentListFilteringTest extends AbstractIntegrationTest {
         testContext.given(UmsResourceTestDto.class)
                 .assignTarget(EnvironmentTestDto.class.getSimpleName())
                 .withEnvironmentAdmin()
-                .when(environmentTestClient.assignResourceRole(AuthUserKeys.USER_ENV_CREATOR_B))
+                .when(umsTestClient.assignResourceRole(AuthUserKeys.USER_ENV_CREATOR_B))
                 .validate();
 
         testContext.given(UmsResourceTestDto.class)
                 .assignTarget(environmentB.getName())
                 .withEnvironmentUser()
-                .when(environmentTestClient.assignResourceRole(AuthUserKeys.USER_ENV_CREATOR_A))
+                .when(umsTestClient.assignResourceRole(AuthUserKeys.USER_ENV_CREATOR_A))
                 .validate();
 
         assertUserSeesAll(testContext, AuthUserKeys.USER_ENV_CREATOR_A, environmentA.getName(), environmentB.getName());

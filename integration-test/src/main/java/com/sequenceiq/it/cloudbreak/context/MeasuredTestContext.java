@@ -252,6 +252,12 @@ public class MeasuredTestContext extends MockedTestContext {
     }
 
     @Override
+    public <E extends Exception> void exceptionValidation(Class<E> expectedException, Exception actualException, String entityKey,
+            RunningParameter runningParameter, String stepKey) {
+        wrappedTestContext.exceptionValidation(expectedException, actualException, entityKey, runningParameter, stepKey);
+    }
+
+    @Override
     public void handleExceptionsDuringTest(TestErrorLog silently) {
         wrappedTestContext.handleExceptionsDuringTest(silently);
     }

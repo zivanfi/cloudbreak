@@ -13,21 +13,21 @@ import com.sequenceiq.it.cloudbreak.dto.AbstractTestDto;
 @Prototype
 public class UmsResourceTestDto extends AbstractTestDto<AssignResourceRequest, Object, UmsResourceTestDto, UmsClient> {
 
+    public static final String DH_CREATOR_CRN = "crn:altus:iam:us-west-1:altus:resourceRole:DataHubCreator";
+
+    public static final String DH_ADMIN_CRN = "crn:altus:iam:us-west-1:altus:resourceRole:DatahubAdmin";
+
+    public static final String DH_USER_CRN = "crn:altus:iam:us-west-1:altus:resourceRole:DatahubUser";
+
+    public static final String ENV_USER_CRN = "crn:altus:iam:us-west-1:altus:resourceRole:EnvironmentUser";
+
+    public static final String ENV_ADMIN_CRN = "crn:altus:iam:us-west-1:altus:resourceRole:EnvironmentAdmin";
+
+    public static final String DATA_STEWARD_CRN = "crn:altus:iam:us-west-1:altus:resourceRole:DataSteward";
+
+    public static final String SHARED_RESOURCE_USER = "crn:altus:iam:us-west-1:altus:resourceRole:SharedResourceUser";
+
     private static final String UMS = "UMS";
-
-    private static final String DH_CREATOR_CRN = "crn:altus:iam:us-west-1:altus:resourceRole:DataHubCreator";
-
-    private static final String DH_ADMIN_CRN = "crn:altus:iam:us-west-1:altus:resourceRole:DataHubAdmin";
-
-    private static final String DH_USER_CRN = "crn:altus:iam:us-west-1:altus:resourceRole:DataHubUser";
-
-    private static final String ENV_USER_CRN = "crn:altus:iam:us-west-1:altus:resourceRole:EnvironmentUser";
-
-    private static final String ENV_ADMIN_CRN = "crn:altus:iam:us-west-1:altus:resourceRole:EnvironmentAdmin";
-
-    private static final String DATA_STEWARD_CRN = "crn:altus:iam:us-west-1:altus:resourceRole:DataSteward";
-
-    private static final String SHARED_RESOURCE_USER = "crn:altus:iam:us-west-1:altus:resourceRole:SharedResourceUser";
 
     public UmsResourceTestDto(TestContext testContext) {
         super(new AssignResourceRequest(), testContext);

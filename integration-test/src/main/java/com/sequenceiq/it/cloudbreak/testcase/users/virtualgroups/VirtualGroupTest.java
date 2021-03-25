@@ -7,6 +7,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 import javax.ws.rs.ForbiddenException;
@@ -26,6 +28,11 @@ import com.sequenceiq.cloudbreak.auth.altus.VirtualGroupRequest;
 import com.sequenceiq.cloudbreak.auth.altus.VirtualGroupService;
 import com.sequenceiq.environment.api.v1.environment.model.response.EnvironmentStatus;
 import com.sequenceiq.freeipa.api.v1.operation.model.OperationState;
+import com.sequenceiq.freeipa.client.FreeIpaClientException;
+import com.sequenceiq.freeipa.client.model.Group;
+import com.sequenceiq.freeipa.entity.Stack;
+import com.sequenceiq.freeipa.service.freeipa.FreeIpaClientFactory;
+import com.sequenceiq.freeipa.service.stack.StackService;
 import com.sequenceiq.it.cloudbreak.EnvironmentClient;
 import com.sequenceiq.it.cloudbreak.FreeIpaClient;
 import com.sequenceiq.it.cloudbreak.UmsClient;
@@ -130,19 +137,20 @@ public class VirtualGroupTest extends AbstractMockTest {
                 .then(this::validateEnvironmentUserResourceRole)
                 .validate();
         testContext
+                .as(cloudbreakActor.useRealUmsUser(AuthUserKeys.ACCOUNT_ADMIN))
                 .given(EnvironmentTestDto.class)
                 .when(environmentTestClient.describe())
                 .then(this::validateResourceRights)
                 .validate();
-//        testContext
-//                .given(FreeIpaTestDto.class)
-//                .when(freeIpaTestClient.describe())
-//                .then(this::validateCmAdminGroup)
-//                .then(this::validateCmAdminGroupNameFormat)
-//                .then(this::validateUserVirtualGroup)
+        testContext
+                .given(FreeIpaTestDto.class)
+                .when(freeIpaTestClient.describe())
+                .then(this::validateCmAdminGroup)
+                .then(this::validateCmAdminGroupNameFormat)
+                .then(this::validateUserMemberCMAdminGroup)
 //                .then(this::validateRangerAdminGroupName)
 //                .then(this::validateRangerAdmin)
-//                .validate();
+                .validate();
         testContext
                 .given(EnvironmentTestDto.class)
                 .when(environmentTestClient.delete())
@@ -192,27 +200,54 @@ public class VirtualGroupTest extends AbstractMockTest {
         return testDto;
     }
 
-    private FreeIpaTestDto validateCmAdminGroupName(TestContext testContext, FreeIpaTestDto testDto, FreeIpaClient freeIpaClient) {
-        String adminGroupName = testDto.getRequest().getFreeIpa().getAdminGroupName();
-        if (StringUtils.isEmpty(adminGroupName)) {
-            throw new TestFailException("FreeIpa admin group have not been created!");
+    private Group getCmAdminGroup(FreeIpaTestDto testDto) {
+        FreeIpaClientFactory freeIpaClientFactory = new FreeIpaClientFactory();
+        StackService stackService = new StackService();
+
+        Set<Group> groups = null;
+        long freeIpaId = Long.parseLong(Objects.requireNonNull(Crn.fromString(testDto.getCrn())).getResource());
+        Stack stack = stackService.getStackById(freeIpaId);
+
+        try {
+            com.sequenceiq.freeipa.client.FreeIpaClient freeIpaUserClient = freeIpaClientFactory.getFreeIpaClientForStack(stack);
+            groups = freeIpaUserClient.groupFindAll();
+            LOGGER.info("FreeIPA {} groups are: {}", testDto.getCrn(), groups);
+        } catch (FreeIpaClientException e) {
+            LOGGER.info("FreeIPA User Client cannot established for {} server.", testDto.getCrn());
+        }
+
+        List<String> groupNames = Objects.requireNonNull(groups).stream()
+                .map(Group::getCn)
+                .collect(Collectors.toList());
+        LOGGER.info("FreeIpa group names: {}", groupNames);
+
+        return Objects.requireNonNull(groups).stream()
+                .filter(group -> group.getCn().contains("_c_cm_admins"))
+                .findAny().orElse(null);
+    }
+
+    private FreeIpaTestDto validateCmAdminGroup(TestContext testContext, FreeIpaTestDto testDto, FreeIpaClient freeIpaClient) {
+        String groupName = getCmAdminGroup(testDto).getCn();
+        if (StringUtils.isEmpty(groupName)) {
+            throw new TestFailException("FreeIpa CM admin group have not been created!");
         } else {
-            LOGGER.info(String.format("FreeIpa admin group name is '%s'.", adminGroupName));
+            LOGGER.info(String.format("FreeIpa CM admin group name is '%s'.", groupName));
         }
         return testDto;
     }
 
     private FreeIpaTestDto validateCmAdminGroupNameFormat(TestContext testContext, FreeIpaTestDto testDto, FreeIpaClient freeIpaClient) {
-        String adminGroupName = testDto.getRequest().getFreeIpa().getAdminGroupName();
-        if (StringUtils.startsWith(adminGroupName, "_c_")) {
-            LOGGER.info(String.format("FreeIpa admin group name is '%s' with expected format.", adminGroupName));
+        String groupName = getCmAdminGroup(testDto).getCn();
+        if (StringUtils.startsWith(groupName, "_c_")) {
+            LOGGER.info(String.format("FreeIpa CM admin group name is '%s' with expected format.", groupName));
         } else {
-            throw new TestFailException("FreeIpa admin group name does not have correct format!");
+            throw new TestFailException("FreeIpa CM admin group name does not have correct format!");
         }
         return testDto;
     }
 
-    private FreeIpaTestDto validateUserVirtualGroup(TestContext testContext, FreeIpaTestDto testDto, FreeIpaClient freeIpaClient) {
+    private FreeIpaTestDto validateUserMemberCMAdminGroup(TestContext testContext, FreeIpaTestDto testDto, FreeIpaClient freeIpaClient) {
+        List<String> users = getCmAdminGroup(testDto).getMemberUser();
         String userName = testDto.getResponse().getAuthentication().getLoginUserName();
         String environmentCrn = testDto.getRequest().getEnvironmentCrn();
         String name = testDto.getName();
@@ -221,6 +256,7 @@ public class VirtualGroupTest extends AbstractMockTest {
         LOGGER.info(String.format("FreeIpa user details: %s", freeIpaClient.getFreeIpaClient().getClientTestV1Endpoint().userShow(freeIpaId, userName)));
         LOGGER.info(String.format("FreeIpa user group: %s", freeIpaClient.getFreeIpaClient().getLdapConfigV1Endpoint().getForCluster(environmentCrn, name)
                 .getUserGroup()));
+        LOGGER.info("FreeIpa CM Admins: {}", users);
         return testDto;
     }
 

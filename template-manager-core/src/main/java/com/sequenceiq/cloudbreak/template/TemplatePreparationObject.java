@@ -19,6 +19,7 @@ import com.sequenceiq.cloudbreak.auth.altus.VirtualGroupRequest;
 import com.sequenceiq.cloudbreak.cloud.model.ClouderaManagerProduct;
 import com.sequenceiq.cloudbreak.cloud.model.ClouderaManagerRepo;
 import com.sequenceiq.cloudbreak.common.mappable.CloudPlatform;
+import com.sequenceiq.cloudbreak.domain.CustomServiceConfigs;
 import com.sequenceiq.cloudbreak.domain.RDSConfig;
 import com.sequenceiq.cloudbreak.domain.Template;
 import com.sequenceiq.cloudbreak.domain.VolumeTemplate;
@@ -61,6 +62,8 @@ public class TemplatePreparationObject {
     private final Optional<LdapView> ldapConfig;
 
     private final Optional<SharedServiceConfigsView> sharedServiceConfigs;
+
+    private final Optional<CustomServiceConfigs> customServiceConfigs;
 
     private final Optional<BaseFileSystemConfigurationsView> fileSystemView;
 
@@ -105,6 +108,7 @@ public class TemplatePreparationObject {
         blueprintView = builder.blueprintView;
         generalClusterConfigs = builder.generalClusterConfigs;
         sharedServiceConfigs = builder.sharedServiceConfigs;
+        customServiceConfigs = builder.customServiceConfigs;
         customInputs = builder.customInputs;
         fixInputs = builder.fixInputs;
         accountMappingView = builder.accountMappingView;
@@ -174,6 +178,10 @@ public class TemplatePreparationObject {
         return sharedServiceConfigs;
     }
 
+    public Optional<CustomServiceConfigs> getCustomServiceConfigs() {
+        return customServiceConfigs;
+    }
+
     public Map<String, Object> getCustomInputs() {
         return customInputs;
     }
@@ -241,6 +249,8 @@ public class TemplatePreparationObject {
         private Optional<KerberosConfig> kerberosConfig = Optional.empty();
 
         private Optional<SharedServiceConfigsView> sharedServiceConfigs = Optional.empty();
+
+        private Optional<CustomServiceConfigs> customServiceConfigs = Optional.empty();
 
         private GeneralClusterConfigs generalClusterConfigs;
 
@@ -356,6 +366,11 @@ public class TemplatePreparationObject {
 
         public Builder withGeneralClusterConfigs(GeneralClusterConfigs generalClusterConfigs) {
             this.generalClusterConfigs = generalClusterConfigs;
+            return this;
+        }
+
+        public Builder withCustomServiceConfigs(Optional<CustomServiceConfigs> customServiceConfigs) {
+            this.customServiceConfigs = customServiceConfigs;
             return this;
         }
 

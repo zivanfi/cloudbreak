@@ -104,6 +104,17 @@ public class StackV4Request extends StackV4Base implements TaggableRequest {
     @ApiModelProperty(value = StackModelDescription.RESOURCE_CRN)
     private String resourceCrn;
 
+    @ApiModelProperty(value = StackModelDescription.CUSTOM_SERVICE_CONFIGS)
+    private String customServiceConfigsCrn;
+
+    public String getCustomServiceConfigsCrn() {
+        return customServiceConfigsCrn;
+    }
+
+    public void setCustomServiceConfigsCrn(String customServiceConfigsCrn) {
+        this.customServiceConfigsCrn = customServiceConfigsCrn;
+    }
+
     public String getEnvironmentCrn() {
         return environmentCrn;
     }

@@ -73,6 +73,7 @@ public class StackToStackV4RequestConverter extends AbstractConversionServiceAwa
         StackV4Request stackV4Request = new StackV4Request();
         stackV4Request.setCloudPlatform(getIfNotNull(source.getCloudPlatform(), cp -> Enum.valueOf(CloudPlatform.class, cp)));
         stackV4Request.setEnvironmentCrn(source.getEnvironmentCrn());
+        stackV4Request.setCustomServiceConfigsCrn(source.getCustomServiceConfigsCrn());
         stackV4Request.setCustomDomain(getCustomDomainSettings(source));
         providerParameterCalculator.parse(new HashMap<>(source.getParameters()), stackV4Request);
         stackV4Request.setAuthentication(getConversionService().convert(source.getStackAuthentication(), StackAuthenticationV4Request.class));

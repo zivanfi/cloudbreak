@@ -132,6 +132,17 @@ public class StackV4Response extends StackV4Base implements TaggedResponse {
     @ApiModelProperty(StackModelDescription.EXTERNAL_DATABASE)
     private DatabaseResponse externalDatabase;
 
+    @ApiModelProperty(value = ModelDescriptions.StackModelDescription.CUSTOM_SERVICE_CONFIGS)
+    private String customServiceConfigsCrn;
+
+    public String getCustomServiceConfigsCrn() {
+        return customServiceConfigsCrn;
+    }
+
+    public void setCustomServiceConfigsCrn(String customServiceConfigsCrn) {
+        this.customServiceConfigsCrn = customServiceConfigsCrn;
+    }
+
     public Long getId() {
         return id;
     }

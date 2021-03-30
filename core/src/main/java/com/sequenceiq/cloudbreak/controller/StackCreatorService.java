@@ -225,7 +225,7 @@ public class StackCreatorService {
                 }
                 stack.setUseCcm(environment.getTunnel().useCcm());
                 stack.setTunnel(environment.getTunnel());
-
+                stack.setCustomServiceConfigsCrn(stackRequest.getCustomServiceConfigsCrn());
                 if (stackRequest.getCluster() != null) {
 
                     measure(() -> setStackType(stack, blueprint),

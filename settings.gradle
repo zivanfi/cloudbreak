@@ -68,4 +68,7 @@ include 'auth-internal-api'
 include 'datalake-dr-connector'
 include 'mock-infrastructure'
 include 'node-status-monitor-client'
+include 'custom-service-configs'
+include 'custom-service-configs-api'
+include 'custom-service-configs-model'
 

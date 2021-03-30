@@ -11,6 +11,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.google.common.collect.Sets;
+import com.sequenceiq.cloudbreak.doc.ModelDescriptions;
 import com.sequenceiq.common.api.tag.request.TaggableRequest;
 import com.sequenceiq.distrox.api.v1.distrox.model.cluster.DistroXClusterV1Request;
 import com.sequenceiq.distrox.api.v1.distrox.model.database.DistroXDatabaseRequest;
@@ -53,6 +54,17 @@ public class DistroXV1Request extends DistroXV1Base implements TaggableRequest {
     private Integer gatewayPort;
 
     private boolean enableLoadBalancer;
+
+    @ApiModelProperty(value = ModelDescriptions.StackModelDescription.CUSTOM_SERVICE_CONFIGS)
+    private String customServiceConfigsCrn;
+
+    public String getCustomServiceConfigsCrn() {
+        return customServiceConfigsCrn;
+    }
+
+    public void setCustomServiceConfigsCrn(String customServiceConfigsCrn) {
+        this.customServiceConfigsCrn = customServiceConfigsCrn;
+    }
 
     public String getEnvironmentName() {
         return environmentName;

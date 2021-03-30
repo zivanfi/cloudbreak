@@ -1,0 +1,36 @@
+apply plugin: 'java'
+
+repositories {
+  mavenCentral()
+  mavenLocal()
+}
+
+dependencies {
+  compile project(':common')
+  compile project(':authorization-common')
+  compile project(':custom-service-configs-api')
+  compile project(':custom-service-configs-model')
+  compile project(':authorization-common-api')
+  compile project(':cloud-api')
+
+  implementation(group: "com.cloudera.api.swagger",      name: "cloudera-manager-api-swagger",   version: cmClientVersion) {
+    transitive = false
+  }
+
+  compile group: 'org.springframework.data',        name: 'spring-data-jpa',              version: springDataJpaFrameworkVersion
+  compile group: 'org.springframework.boot',        name: 'spring-boot-starter-web',      version: springBootVersion
+  compile group: 'org.springframework.boot',        name: 'spring-boot-starter-security', version: springBootVersion
+
+
+  runtimeOnly group: 'org.postgresql', name: 'postgresql', version: postgreSQLVersion
+
+  testImplementation group: 'org.springframework.boot', name: 'spring-boot-starter', version: springBootVersion
+  testImplementation group: 'org.springframework.boot', name: 'spring-boot-starter-test', version: springBootVersion
+  testImplementation 'org.junit.jupiter:junit-jupiter-api:5.6.0'
+
+  testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+}
+
+test {
+  useJUnitPlatform()
+}

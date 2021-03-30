@@ -81,6 +81,9 @@ public class CentralCmTemplateUpdaterTest {
     private CmTemplateConfigInjectorProcessor cmTemplateConfigInjectorProcessor;
 
     @Spy
+    private CustomServiceConfigsInjectorProcessor customServiceConfigsInjectorProcessor;
+
+    @Spy
     private CmHostGroupRoleConfigProviderProcessor cmHostGroupRoleConfigProviderProcessor;
 
     @Mock

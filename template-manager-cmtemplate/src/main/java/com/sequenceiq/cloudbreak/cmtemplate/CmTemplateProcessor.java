@@ -489,6 +489,30 @@ public class CmTemplateProcessor implements BlueprintTextProcessor {
         setServiceConfigs(service, configMap.values());
     }
 
+    public void mergeCustomServiceConfigs(ApiClusterTemplateService service, List<ApiClusterTemplateConfig> newCustomConfigs) {
+        if (newCustomConfigs.isEmpty()) {
+            return;
+        }
+        List<ApiClusterTemplateConfig> currentConfigs = service.getServiceConfigs();
+        newCustomConfigs.forEach(config -> {
+            Optional<ApiClusterTemplateConfig> configIfExists = currentConfigs.stream()
+                    .filter(currentConfig -> currentConfig.getName().equalsIgnoreCase(config.getName()))
+                    .findFirst();
+            // currentConfigs is updated in below conditionals
+            if (configIfExists.isPresent()) {
+                if (config.getName().endsWith("_safety_valve")) {
+                    String currentValue = configIfExists.get().getValue();
+                    String valueToBeAppended = config.getValue();
+                    config.setValue(currentValue + valueToBeAppended);
+                }
+                currentConfigs.set(currentConfigs.indexOf(configIfExists.get()), config);
+            } else {
+                currentConfigs.add(config);
+            }
+        });
+        setServiceConfigs(service, currentConfigs);
+    }
+
     private void chooseApiClusterTemplateConfig(Map<String, ApiClusterTemplateConfig> existingConfigs, ApiClusterTemplateConfig newConfig) {
         String configName = newConfig.getName();
         ApiClusterTemplateConfig existingApiClusterTemplateConfig = existingConfigs.get(configName);
@@ -498,7 +522,7 @@ public class CmTemplateProcessor implements BlueprintTextProcessor {
                 String oldConfigValue = existingApiClusterTemplateConfig.getValue();
                 String newConfigValue = newConfig.getValue();
 
-                // By CB-1452 append the bp config at the end of generated config to give precendece to it. Add a newline in between for it to be safe
+                // By CB-1452 append the bp config at the end of generated config to give precedence to it. Add a newline in between for it to be safe
                 // with property file safety valves and command line safety valves.
                 newConfig.setValue(newConfigValue + '\n' + oldConfigValue);
             } else {

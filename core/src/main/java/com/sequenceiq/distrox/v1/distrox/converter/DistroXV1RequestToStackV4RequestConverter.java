@@ -82,6 +82,7 @@ public class DistroXV1RequestToStackV4RequestConverter {
         request.setType(StackType.WORKLOAD);
         request.setCloudPlatform(getCloudPlatform(environment));
         request.setEnvironmentCrn(environment.getCrn());
+        request.setCustomServiceConfigsCrn(source.getCustomServiceConfigsCrn());
         request.setAuthentication(getIfNotNull(environment.getAuthentication(), authenticationConverter::convert));
         request.setImage(getIfNotNull(source.getImage(), imageConverter::convert));
         request.setCluster(getIfNotNull(source, environment, clusterConverter::convert));

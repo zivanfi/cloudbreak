@@ -40,6 +40,7 @@ import com.sequenceiq.cloudbreak.common.exception.CloudbreakServiceException;
 import com.sequenceiq.cloudbreak.common.mappable.CloudPlatform;
 import com.sequenceiq.cloudbreak.common.service.TransactionService;
 import com.sequenceiq.cloudbreak.core.bootstrap.service.container.postgres.PostgresConfigService;
+import com.sequenceiq.cloudbreak.domain.CustomServiceConfigs;
 import com.sequenceiq.cloudbreak.domain.FileSystem;
 import com.sequenceiq.cloudbreak.domain.cloudstorage.AccountMapping;
 import com.sequenceiq.cloudbreak.domain.stack.Stack;
@@ -52,6 +53,7 @@ import com.sequenceiq.cloudbreak.dto.credential.Credential;
 import com.sequenceiq.cloudbreak.kerberos.KerberosConfigService;
 import com.sequenceiq.cloudbreak.ldap.LdapConfigService;
 import com.sequenceiq.cloudbreak.logger.MDCUtils;
+import com.sequenceiq.cloudbreak.service.CustomServiceConfigsService;
 import com.sequenceiq.cloudbreak.service.GatewayConfigService;
 import com.sequenceiq.cloudbreak.service.LoadBalancerConfigService;
 import com.sequenceiq.cloudbreak.service.ServiceEndpointCollector;
@@ -140,6 +142,9 @@ public class StackToTemplatePreparationObjectConverter extends AbstractConversio
     private GcpMockAccountMappingService gcpMockAccountMappingService;
 
     @Inject
+    private CustomServiceConfigsService customServiceConfigsService;
+
+    @Inject
     private CmCloudStorageConfigProvider cmCloudStorageConfigProvider;
 
     @Inject
@@ -197,6 +202,7 @@ public class StackToTemplatePreparationObjectConverter extends AbstractConversio
             BaseFileSystemConfigurationsView fileSystemConfigurationView = getFileSystemConfigurationView(credential, source, fileSystem);
             Optional<DatalakeResources> dataLakeResource = getDataLakeResource(source);
             StackInputs stackInputs = getStackInputs(source);
+            Optional<CustomServiceConfigs> customServiceConfigs = customServiceConfigsService.getCustomServiceConfigsByCrn(source.getCustomServiceConfigsCrn());
             Map<String, Object> fixInputs = stackInputs.getFixInputs() == null ? new HashMap<>() : stackInputs.getFixInputs();
             fixInputs.putAll(stackInputs.getDatalakeInputs() == null ? new HashMap<>() : stackInputs.getDatalakeInputs());
             Gateway gateway = cluster.getGateway();
@@ -224,6 +230,7 @@ public class StackToTemplatePreparationObjectConverter extends AbstractConversio
                     .withRdsSslCertificateFilePath(dbCertificateProvider.getSslCertsFilePath())
                     .withGateway(gateway, gatewaySignKey, exposedServiceCollector.getAllKnoxExposed())
                     .withIdBroker(idbroker)
+                    .withCustomServiceConfigs(customServiceConfigs)
                     .withCustomInputs(stackInputs.getCustomInputs() == null ? new HashMap<>() : stackInputs.getCustomInputs())
                     .withFixInputs(fixInputs)
                     .withBlueprintView(blueprintViewProvider.getBlueprintView(cluster.getBlueprint()))

@@ -13,6 +13,17 @@ public class OperationDescriptions {
         public static final String CLI_COMMAND = "produce cli command input";
     }
 
+    public static class CustomServiceConfigsOpDescription {
+        public static final String GET_ALL = "retrieve all custom service configs";
+        public static final String GET_BY_NAME = "retrieve custom service configs by name";
+        public static final String GET_BY_CRN = "get custom configs by crn";
+        public static final String CREATE = "create new custom service configs";
+        public static final String DELETE_BY_CRN = "delete custom service configs by crn";
+        public static final String DELETE_BY_NAME = "delete custom service configs by name";
+        public static final String UPDATE_BY_CRN = "update custom service configs by crn";
+        public static final String UPDATE_BY_NAME = "update custom service configs by name";
+    }
+
     public static class StackOpDescription {
         public static final String GET_BY_CRN = "retrieve stack by crn";
         public static final String GET_STATUS_BY_NAME = "retrieve stack status by stack name";

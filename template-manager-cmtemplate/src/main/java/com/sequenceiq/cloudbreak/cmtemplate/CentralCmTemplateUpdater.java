@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import com.cloudera.api.swagger.model.ApiClusterTemplate;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.Maps;
 import com.sequenceiq.cloudbreak.cloud.model.ClouderaManagerProduct;
 import com.sequenceiq.cloudbreak.cloud.model.ClouderaManagerRepo;
@@ -39,6 +40,9 @@ public class CentralCmTemplateUpdater implements BlueprintUpdater {
 
     @Inject
     private CmTemplateConfigInjectorProcessor cmTemplateConfigInjectorProcessor;
+
+    @Inject
+    private CustomServiceConfigsInjectorProcessor customServiceConfigsInjectorProcessor;
 
     @Inject
     private CmHostGroupRoleConfigProviderProcessor cmHostGroupRoleConfigProviderProcessor;
@@ -77,13 +81,14 @@ public class CentralCmTemplateUpdater implements BlueprintUpdater {
     }
 
     private void updateCmTemplateConfiguration(CmTemplateProcessor processor, ClouderaManagerRepo clouderaManagerRepoDetails,
-            TemplatePreparationObject source, Map<String, List<Map<String, String>>> hostGroupMappings, String sdxContextName) {
+            TemplatePreparationObject source, Map<String, List<Map<String, String>>> hostGroupMappings, String sdxContextName) throws JsonProcessingException {
         processor.addInstantiator(clouderaManagerRepoDetails, source, sdxContextName);
         processor.addHosts(hostGroupMappings);
         processor.addDiagnosticTags(source, clouderaManagerRepoDetails);
         cmTemplateComponentConfigProviderProcessor.process(processor, source);
         cmTemplateConfigInjectorProcessor.process(processor, source);
         cmHostGroupRoleConfigProviderProcessor.process(processor, source);
+        customServiceConfigsInjectorProcessor.process(processor, source);
         processor.setDisplayName(source.getGeneralClusterConfigs().getClusterName());
     }
 
@@ -113,5 +118,4 @@ public class CentralCmTemplateUpdater implements BlueprintUpdater {
     private String parseDistroVersion(String longVersion) {
         return longVersion.split("-")[0];
     }
-
 }

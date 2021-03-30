@@ -41,8 +41,8 @@ import com.sequenceiq.cloudbreak.structuredevent.rest.LegacyStructuredEventFilte
 import com.sequenceiq.cloudbreak.util.FileReaderUtils;
 import com.sequenceiq.distrox.v1.distrox.controller.DistroXDatabaseServerV1Controller;
 import com.sequenceiq.distrox.v1.distrox.controller.DistroXInternalV1Controller;
-import com.sequenceiq.distrox.v1.distrox.controller.DistroXV1Controller;
 import com.sequenceiq.distrox.v1.distrox.controller.DistroXUpgradeV1Controller;
+import com.sequenceiq.distrox.v1.distrox.controller.DistroXV1Controller;
 import com.sequenceiq.flow.controller.FlowController;
 import com.sequenceiq.flow.controller.FlowPublicController;
 
@@ -60,6 +60,7 @@ public class EndpointConfig extends ResourceConfig {
             AuditEventV4Controller.class,
             BlueprintV4Controller.class,
             BlueprintUtilV4Controller.class,
+            CustomServiceConfigsController.class,
             EventV4Controller.class,
             ClusterTemplateV4Controller.class,
             DatabaseV4Controller.class,

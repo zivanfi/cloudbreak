@@ -68,6 +68,7 @@ import com.sequenceiq.cloudbreak.dto.LdapView;
 import com.sequenceiq.cloudbreak.dto.credential.Credential;
 import com.sequenceiq.cloudbreak.kerberos.KerberosConfigService;
 import com.sequenceiq.cloudbreak.ldap.LdapConfigService;
+import com.sequenceiq.cloudbreak.service.CustomServiceConfigsService;
 import com.sequenceiq.cloudbreak.service.GatewayConfigService;
 import com.sequenceiq.cloudbreak.service.LoadBalancerConfigService;
 import com.sequenceiq.cloudbreak.service.ServiceEndpointCollector;
@@ -195,6 +196,9 @@ public class StackToTemplatePreparationObjectConverterTest {
 
     @Mock
     private KerberosConfigService kerberosConfigService;
+
+    @Mock
+    private CustomServiceConfigsService customServiceConfigsService;
 
     @Mock
     private EnvironmentClientService environmentClientService;

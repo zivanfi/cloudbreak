@@ -143,6 +143,7 @@ public class ModelDescriptions {
         public static final String AVAILABILITY_ZONE = "availability zone of the stack";
         public static final String CREDENTIAL_ID = "credential resource id for the stack";
         public static final String CREDENTIAL_NAME = "credential resource name for the stack";
+        public static final String CUSTOM_SERVICE_CONFIGS = "custom service configs for the stack";
         public static final String USERNAME = "ambari username";
         public static final String PASSWORD = "ambari password";
         public static final String EXTENDED_BLUEPRINT_TEXT = "extended blueprint text";

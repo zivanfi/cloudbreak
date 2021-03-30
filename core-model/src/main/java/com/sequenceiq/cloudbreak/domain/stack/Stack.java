@@ -204,6 +204,8 @@ public class Stack implements ProvisionEntity, WorkspaceAwareResource {
 
     private String ccmV2AgentCrn;
 
+    private String customServiceConfigsCrn;
+
     @Convert(converter = DatabaseAvailabilityTypeConverter.class)
     private DatabaseAvailabilityType externalDatabaseCreationType;
 
@@ -238,6 +240,14 @@ public class Stack implements ProvisionEntity, WorkspaceAwareResource {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public String getCustomServiceConfigsCrn() {
+        return customServiceConfigsCrn;
+    }
+
+    public void setCustomServiceConfigsCrn(String customServiceConfigsCrn) {
+        this.customServiceConfigsCrn = customServiceConfigsCrn;
     }
 
     public void setName(String name) {

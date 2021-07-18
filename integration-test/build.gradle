@@ -90,6 +90,9 @@ dependencies {
   compile (project(':audit-connector')) {
     transitive = false;
   }
+  compile (project(':idbmms-connector')) {
+    transitive = false;
+  }
 
   compile project(':common')
   compile project(':cloud-gcp')

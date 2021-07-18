@@ -30,6 +30,7 @@ import com.sequenceiq.it.cloudbreak.dto.distrox.instancegroup.DistroXNetworkTest
 import com.sequenceiq.it.cloudbreak.dto.distrox.instancegroup.DistroXRootVolumeTestDto;
 import com.sequenceiq.it.cloudbreak.dto.distrox.instancegroup.DistroXVolumeTestDto;
 import com.sequenceiq.it.cloudbreak.dto.environment.EnvironmentNetworkTestDto;
+import com.sequenceiq.it.cloudbreak.dto.idbmms.IdbmmsTestDto;
 import com.sequenceiq.it.cloudbreak.dto.imagecatalog.ImageCatalogTestDto;
 import com.sequenceiq.it.cloudbreak.dto.sdx.SdxCloudStorageTestDto;
 import com.sequenceiq.it.cloudbreak.dto.stack.StackTestDtoBase;
@@ -227,12 +228,17 @@ public class OpenStackCloudProvider extends AbstractCloudProvider {
         return throwNotImplementedException();
     }
 
-    private <T> T throwNotImplementedException() {
-        throw new NotImplementedException(String.format("Not implemented on %s", getCloudPlatform()));
-    }
-
     @Override
     public String getLatestBaseImageID(TestContext testContext, ImageCatalogTestDto imageCatalogTestDto, CloudbreakClient cloudbreakClient) {
         return throwNotImplementedException();
+    }
+
+    @Override
+    public IdbmmsTestDto idbmms(IdbmmsTestDto idbmms) {
+        return throwNotImplementedException();
+    }
+
+    private <T> T throwNotImplementedException() {
+        throw new NotImplementedException(String.format("Not implemented on %s", getCloudPlatform()));
     }
 }

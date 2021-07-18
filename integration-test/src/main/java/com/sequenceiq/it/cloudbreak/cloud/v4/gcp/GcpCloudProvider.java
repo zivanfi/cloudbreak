@@ -46,6 +46,7 @@ import com.sequenceiq.it.cloudbreak.dto.distrox.instancegroup.DistroXVolumeTestD
 import com.sequenceiq.it.cloudbreak.dto.environment.EnvironmentNetworkTestDto;
 import com.sequenceiq.it.cloudbreak.dto.environment.EnvironmentSecurityAccessTestDto;
 import com.sequenceiq.it.cloudbreak.dto.environment.EnvironmentTestDto;
+import com.sequenceiq.it.cloudbreak.dto.idbmms.IdbmmsTestDto;
 import com.sequenceiq.it.cloudbreak.dto.imagecatalog.ImageCatalogTestDto;
 import com.sequenceiq.it.cloudbreak.dto.sdx.SdxCloudStorageTestDto;
 import com.sequenceiq.it.cloudbreak.dto.sdx.SdxCustomTestDto;
@@ -388,7 +389,12 @@ public class GcpCloudProvider extends AbstractCloudProvider {
         gcpProperties.getBaseimage().setImageId(id);
     }
 
-    private <T> T notImplementedException() {
+    @Override
+    public IdbmmsTestDto idbmms(IdbmmsTestDto idbmms) {
+        return throwNotImplementedException();
+    }
+
+    private <T> T throwNotImplementedException() {
         throw new NotImplementedException(String.format("Not implemented on %s", getCloudPlatform()));
     }
 

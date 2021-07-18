@@ -53,6 +53,7 @@ import com.sequenceiq.it.cloudbreak.dto.distrox.instancegroup.DistroXRootVolumeT
 import com.sequenceiq.it.cloudbreak.dto.distrox.instancegroup.DistroXVolumeTestDto;
 import com.sequenceiq.it.cloudbreak.dto.environment.EnvironmentNetworkTestDto;
 import com.sequenceiq.it.cloudbreak.dto.environment.EnvironmentTestDto;
+import com.sequenceiq.it.cloudbreak.dto.idbmms.IdbmmsTestDto;
 import com.sequenceiq.it.cloudbreak.dto.imagecatalog.ImageCatalogTestDto;
 import com.sequenceiq.it.cloudbreak.dto.sdx.SdxCloudStorageTestDto;
 import com.sequenceiq.it.cloudbreak.dto.stack.StackTestDtoBase;
@@ -417,8 +418,12 @@ public class AzureCloudProvider extends AbstractCloudProvider {
         azureProperties.getBaseimage().setImageId(id);
     }
 
-    private String notImplementedException() {
-        throw new NotImplementedException(String.format("Not implemented on %s", getCloudPlatform()));
+    @Override
+    public IdbmmsTestDto idbmms(IdbmmsTestDto idbmms) {
+        return throwNotImplementedException();
     }
 
+    private <T> T throwNotImplementedException() {
+        throw new NotImplementedException(String.format("Not implemented on %s", getCloudPlatform()));
+    }
 }

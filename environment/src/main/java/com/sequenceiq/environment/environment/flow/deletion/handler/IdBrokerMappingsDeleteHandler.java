@@ -1,6 +1,5 @@
 package com.sequenceiq.environment.environment.flow.deletion.handler;
 
-import static com.sequenceiq.cloudbreak.auth.ThreadBasedUserCrnProvider.INTERNAL_ACTOR_CRN;
 import static com.sequenceiq.environment.environment.flow.deletion.event.EnvDeleteHandlerSelectors.DELETE_IDBROKER_MAPPINGS_EVENT;
 import static com.sequenceiq.environment.environment.flow.deletion.event.EnvDeleteStateSelectors.START_S3GUARD_TABLE_DELETE_EVENT;
 
@@ -79,7 +78,7 @@ public class IdBrokerMappingsDeleteHandler extends EventSenderAwareHandler<Envir
     private void deleteIdBrokerMappings(String environmentCrn) {
         try {
             // Must pass the internal actor here as this operation is internal-use only; requests with other actors will be always rejected.
-            idbmmsClient.deleteMappings(INTERNAL_ACTOR_CRN, environmentCrn, Optional.empty());
+            idbmmsClient.deleteMappings(environmentCrn, Optional.empty());
         } catch (IdbmmsOperationException e) {
             if (e.getErrorStatus() == IdbmmsOperationErrorStatus.NOT_FOUND) {
                 // This is a non-fatal situation when deleting the environment.

@@ -10,15 +10,22 @@ import javax.inject.Inject;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testng.annotations.Ignore;
 import org.testng.annotations.Test;
 
+import com.sequenceiq.common.api.type.Tunnel;
+import com.sequenceiq.environment.api.v1.environment.model.base.IdBrokerMappingSource;
+import com.sequenceiq.environment.api.v1.environment.model.response.EnvironmentStatus;
 import com.sequenceiq.it.cloudbreak.SdxClient;
+import com.sequenceiq.it.cloudbreak.client.EnvironmentTestClient;
+import com.sequenceiq.it.cloudbreak.client.IdbmmsTestClient;
 import com.sequenceiq.it.cloudbreak.client.SdxTestClient;
 import com.sequenceiq.it.cloudbreak.client.StackTestClient;
 import com.sequenceiq.it.cloudbreak.context.Description;
 import com.sequenceiq.it.cloudbreak.context.TestContext;
+import com.sequenceiq.it.cloudbreak.dto.environment.EnvironmentTestDto;
+import com.sequenceiq.it.cloudbreak.dto.idbmms.IdbmmsTestDto;
 import com.sequenceiq.it.cloudbreak.dto.sdx.SdxInternalTestDto;
+import com.sequenceiq.it.cloudbreak.dto.telemetry.TelemetryTestDto;
 import com.sequenceiq.it.cloudbreak.exception.TestFailException;
 import com.sequenceiq.it.cloudbreak.log.Log;
 import com.sequenceiq.it.cloudbreak.testcase.e2e.sdx.PreconditionSdxE2ETest;
@@ -39,6 +46,12 @@ public class SdxBackupRestoreTest extends PreconditionSdxE2ETest {
     @Inject
     private StackTestClient stackTestClient;
 
+    @Inject
+    private EnvironmentTestClient environmentTestClient;
+
+    @Inject
+    private IdbmmsTestClient idbmmsTestClient;
+
     private String backupId;
 
     private String restoreId;
@@ -49,10 +62,9 @@ public class SdxBackupRestoreTest extends PreconditionSdxE2ETest {
         createDefaultUser(testContext);
         initializeDefaultBlueprints(testContext);
         createDefaultCredential(testContext);
-        createEnvironmentWithNetworkAndFreeIpa(testContext);
     }
 
-    @Ignore(value = "We need to wait the CB-13322 (Data Lake database backup request to Cloudbreak failed with status: 409) to be fixed!")
+//    @Ignore(value = "We need to wait the CB-13322 (Data Lake database backup request to Cloudbreak failed with status: 409) to be fixed!")
     @Test(dataProvider = TEST_CONTEXT)
     @UseSpotInstances
     @Description(
@@ -61,6 +73,29 @@ public class SdxBackupRestoreTest extends PreconditionSdxE2ETest {
             then = "SDX restore should be done successfully"
     )
     public void testSDXBackupRestoreCanBeSuccessful(TestContext testContext) {
+        testContext
+                .given("telemetry", TelemetryTestDto.class)
+                .withLogging()
+                .withReportClusterLogs()
+                .given(EnvironmentTestDto.class)
+                .withNetwork()
+                .withTelemetry("telemetry")
+                .withTunnel(Tunnel.CLUSTER_PROXY)
+                .withCreateFreeIpa(Boolean.TRUE)
+                .withFreeIpaImage(commonCloudProperties().getImageValidation().getFreeIpaImageCatalog(),
+                        commonCloudProperties().getImageValidation().getFreeIpaImageUuid())
+                .withIdBrokerMappingSource(IdBrokerMappingSource.IDBMMS)
+                .when(environmentTestClient.create())
+                .await(EnvironmentStatus.AVAILABLE)
+                .validate();
+
+        String environmentCrn = testContext.given(EnvironmentTestDto.class).when(environmentTestClient.describe()).getResponse().getCrn();
+        testContext
+                .given(IdbmmsTestDto.class)
+                    .withEnvironment(environmentCrn)
+                .when(idbmmsTestClient.configureMapping())
+                .validate();
+
         SdxDatabaseRequest sdxDatabaseRequest = new SdxDatabaseRequest();
         sdxDatabaseRequest.setAvailabilityType(SdxDatabaseAvailabilityType.NON_HA);
         testContext

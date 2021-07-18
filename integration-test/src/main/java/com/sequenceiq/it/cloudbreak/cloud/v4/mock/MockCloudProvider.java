@@ -46,6 +46,7 @@ import com.sequenceiq.it.cloudbreak.dto.distrox.instancegroup.DistroXNetworkTest
 import com.sequenceiq.it.cloudbreak.dto.distrox.instancegroup.DistroXRootVolumeTestDto;
 import com.sequenceiq.it.cloudbreak.dto.distrox.instancegroup.DistroXVolumeTestDto;
 import com.sequenceiq.it.cloudbreak.dto.environment.EnvironmentNetworkTestDto;
+import com.sequenceiq.it.cloudbreak.dto.idbmms.IdbmmsTestDto;
 import com.sequenceiq.it.cloudbreak.dto.imagecatalog.ImageCatalogTestDto;
 import com.sequenceiq.it.cloudbreak.dto.sdx.SdxCloudStorageTestDto;
 import com.sequenceiq.it.cloudbreak.dto.stack.StackTestDtoBase;
@@ -237,11 +238,6 @@ public class MockCloudProvider extends AbstractCloudProvider {
         }
     }
 
-    private <T> T throwNotImplementedException() {
-        throw new NotImplementedException(String.format("Not implemented on %s. Do you want to use against a real provider? You should set the " +
-                "`integrationtest.cloudProvider` property, Values: AZURE, AWS", getCloudPlatform()));
-    }
-
     @Override
     public String getLatestBaseImageID(TestContext testContext, ImageCatalogTestDto imageCatalogTestDto, CloudbreakClient cloudbreakClient) {
         if (mockProperties.getBaseimage().getRedhat7().getImageId() == null || mockProperties.getBaseimage().getRedhat7().getImageId().isEmpty()) {
@@ -411,5 +407,15 @@ public class MockCloudProvider extends AbstractCloudProvider {
         params.setInternetGatewayId(getInternetGatewayId());
         params.setVpcId(getVpcId());
         return params;
+    }
+
+    @Override
+    public IdbmmsTestDto idbmms(IdbmmsTestDto idbmms) {
+        return throwNotImplementedException();
+    }
+
+    private <T> T throwNotImplementedException() {
+        throw new NotImplementedException(String.format("Not implemented on %s. Do you want to use against a real provider? You should set the " +
+                "`integrationtest.cloudProvider` property, Values: AZURE, AWS", getCloudPlatform()));
     }
 }

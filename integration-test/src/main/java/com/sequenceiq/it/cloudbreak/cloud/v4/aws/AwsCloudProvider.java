@@ -56,6 +56,7 @@ import com.sequenceiq.it.cloudbreak.dto.distrox.instancegroup.DistroXRootVolumeT
 import com.sequenceiq.it.cloudbreak.dto.distrox.instancegroup.DistroXVolumeTestDto;
 import com.sequenceiq.it.cloudbreak.dto.environment.EnvironmentNetworkTestDto;
 import com.sequenceiq.it.cloudbreak.dto.environment.EnvironmentTestDto;
+import com.sequenceiq.it.cloudbreak.dto.idbmms.IdbmmsTestDto;
 import com.sequenceiq.it.cloudbreak.dto.imagecatalog.ImageCatalogTestDto;
 import com.sequenceiq.it.cloudbreak.dto.sdx.SdxCloudStorageTestDto;
 import com.sequenceiq.it.cloudbreak.dto.stack.StackTestDtoBase;
@@ -240,6 +241,15 @@ public class AwsCloudProvider extends AbstractCloudProvider {
     @Override
     public CloudPlatform getCloudPlatform() {
         return CloudPlatform.AWS;
+    }
+
+    @Override
+    public IdbmmsTestDto idbmms(IdbmmsTestDto idbmms) {
+        return idbmms
+                .withEmptyMappings(awsProperties.getIdbmms().getEmptyMappings())
+                .withDataAccessRole(awsProperties.getIdbmms().getDataAccessRole())
+                .withRangerAuditRole(awsProperties.getIdbmms().getRangerAuditRole())
+                .withMappings(awsProperties.getIdbmms().getMappings());
     }
 
     @Override

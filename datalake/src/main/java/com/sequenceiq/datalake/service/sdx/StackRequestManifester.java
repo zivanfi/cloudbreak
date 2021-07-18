@@ -1,7 +1,5 @@
 package com.sequenceiq.datalake.service.sdx;
 
-import static com.sequenceiq.cloudbreak.auth.ThreadBasedUserCrnProvider.INTERNAL_ACTOR_CRN;
-
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
@@ -254,7 +252,7 @@ public class StackRequestManifester {
                 MappingsConfig mappingsConfig;
                 try {
                     // Must pass the internal actor here as this operation is internal-use only; requests with other actors will be always rejected.
-                    mappingsConfig = idbmmsClient.getMappingsConfig(INTERNAL_ACTOR_CRN, environmentCrn, Optional.empty());
+                    mappingsConfig = idbmmsClient.getMappingsConfig(environmentCrn, Optional.empty());
                     validateMappingsConfig(mappingsConfig, stackRequest);
                 } catch (IdbmmsOperationException e) {
                     throw new BadRequestException(String.format("Unable to get mappings: %s", e.getMessage()), e);

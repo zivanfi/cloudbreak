@@ -6,6 +6,7 @@ import java.util.Map;
 
 import com.cloudera.thunderhead.service.idbrokermappingmanagement.IdBrokerMappingManagementGrpc;
 import com.cloudera.thunderhead.service.idbrokermappingmanagement.IdBrokerMappingManagementProto;
+import com.sequenceiq.cloudbreak.auth.ThreadBasedUserCrnProvider;
 import com.sequenceiq.cloudbreak.grpc.altus.AltusMetadataInterceptor;
 import com.sequenceiq.cloudbreak.grpc.util.GrpcUtil;
 import com.sequenceiq.cloudbreak.idbmms.model.MappingsConfig;
@@ -27,13 +28,10 @@ class IdbmmsClient {
 
     private final ManagedChannel channel;
 
-    private final String actorCrn;
-
     private final Tracer tracer;
 
-    IdbmmsClient(ManagedChannel channel, String actorCrn, Tracer tracer) {
+    IdbmmsClient(ManagedChannel channel, Tracer tracer) {
         this.channel = checkNotNull(channel);
-        this.actorCrn = checkNotNull(actorCrn);
         this.tracer = tracer;
     }
 
@@ -77,6 +75,37 @@ class IdbmmsClient {
     }
 
     /**
+     * Configure a real IDBroker mappings for the given environment.
+     *
+     * @param requestId      the request ID for the request; must not be {@code null}
+     * @param environmentCrn the environment CRN; must not be {@code null}
+     * @param dataAccessRole the role services will be mapped to. The list of services (users) mapped automatically to this role is:
+     *                       "hbase", "hdfs", "hive", "impala", "yarn", "dpprofiler", "zeppelin", "kudu".
+     * @param baseLineRole   the role used by ranger plugin to write audit logs. The list of services (users) mapped automatically to this role is:
+     *                       "kafka", "solr", "knox", "atlas"
+     * @param accountId      the account ID
+     * @return               SetMappingsResponse
+     */
+    IdBrokerMappingManagementProto.SetMappingsResponse setMappings(String requestId, String environmentCrn, String dataAccessRole, String baseLineRole,
+            String accountId) {
+        checkNotNull(requestId);
+        checkNotNull(environmentCrn);
+        checkNotNull(dataAccessRole);
+        checkNotNull(baseLineRole);
+        checkNotNull(accountId);
+
+        IdBrokerMappingManagementProto.SetMappingsResponse setMappingsResponse = newStub(requestId).setMappings(
+                IdBrokerMappingManagementProto.SetMappingsRequest.newBuilder()
+                        .setEnvironmentNameOrCrn(environmentCrn)
+                        .setDataAccessRole(dataAccessRole)
+                        .setBaselineRole(baseLineRole)
+                        .setAccountId(accountId)
+                        .build()
+        );
+        return setMappingsResponse;
+    }
+
+    /**
      * Creates a new stub with the appropriate metadata injecting interceptors.
      *
      * @param requestId the request ID
@@ -86,7 +115,6 @@ class IdbmmsClient {
         checkNotNull(requestId);
         return IdBrokerMappingManagementGrpc.newBlockingStub(channel)
                 .withInterceptors(GrpcUtil.getTracingInterceptor(tracer),
-                        new AltusMetadataInterceptor(requestId, actorCrn));
+                        new AltusMetadataInterceptor(requestId, ThreadBasedUserCrnProvider.INTERNAL_ACTOR_CRN));
     }
-
 }

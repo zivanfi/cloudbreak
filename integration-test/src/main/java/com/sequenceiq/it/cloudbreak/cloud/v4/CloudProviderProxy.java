@@ -38,6 +38,7 @@ import com.sequenceiq.it.cloudbreak.dto.environment.EnvironmentNetworkTestDto;
 import com.sequenceiq.it.cloudbreak.dto.environment.EnvironmentSecurityAccessTestDto;
 import com.sequenceiq.it.cloudbreak.dto.environment.EnvironmentTestDto;
 import com.sequenceiq.it.cloudbreak.dto.freeipa.FreeIpaTestDto;
+import com.sequenceiq.it.cloudbreak.dto.idbmms.IdbmmsTestDto;
 import com.sequenceiq.it.cloudbreak.dto.imagecatalog.ImageCatalogTestDto;
 import com.sequenceiq.it.cloudbreak.dto.sdx.SdxCloudStorageTestDto;
 import com.sequenceiq.it.cloudbreak.dto.sdx.SdxCustomTestDto;
@@ -266,6 +267,11 @@ public class CloudProviderProxy implements CloudProvider {
     @Override
     public CredentialTestDto credential(CredentialTestDto credential) {
         return getDelegate(credential).credential(credential);
+    }
+
+    @Override
+    public IdbmmsTestDto idbmms(IdbmmsTestDto mapping) {
+        return getDelegate(mapping).idbmms(mapping);
     }
 
     @Override

@@ -27,6 +27,8 @@ public class CommonCloudProperties {
 
     private ImageValidation imageValidation = new ImageValidation();
 
+    private Idbmms idbmms = new Idbmms();
+
     private Ums ums = new Ums();
 
     private User user = new User();
@@ -107,6 +109,10 @@ public class CommonCloudProperties {
         this.imageValidation = imageValidation;
     }
 
+    public Idbmms getIdbmms() {
+        return idbmms;
+    }
+
     public Ums getUms() {
         return ums;
     }
@@ -173,6 +179,18 @@ public class CommonCloudProperties {
 
         public void setFreeIpaImageUuid(String freeIpaImageUuid) {
             this.freeIpaImageUuid = freeIpaImageUuid;
+        }
+    }
+
+    public static class Idbmms {
+        private String host;
+
+        public String getHost() {
+            return host;
+        }
+
+        public void setHost(String host) {
+            this.host = host;
         }
     }
 

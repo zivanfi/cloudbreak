@@ -1,6 +1,5 @@
 package com.sequenceiq.datalake.service.sdx;
 
-import static com.sequenceiq.cloudbreak.auth.ThreadBasedUserCrnProvider.INTERNAL_ACTOR_CRN;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -156,7 +155,7 @@ public class StackRequestManifesterTest {
     public void testSetupCloudStorageAccountMappingWhenCloudStorageWithNoAccountMappingAndIdbmmsSourceAndSuccess() {
         when(stackV4Request.getCluster()).thenReturn(clusterV4Request);
         when(stackV4Request.getName()).thenReturn(STACK_NAME);
-        when(idbmmsClient.getMappingsConfig(INTERNAL_ACTOR_CRN, ENVIRONMENT_CRN, Optional.empty())).thenReturn(mappingsConfig);
+        when(idbmmsClient.getMappingsConfig(ENVIRONMENT_CRN, Optional.empty())).thenReturn(mappingsConfig);
         when(mappingsConfig.getGroupMappings()).thenReturn(Map.ofEntries(Map.entry(GROUP_2, GROUP_ROLE_2)));
         when(mappingsConfig.getActorMappings()).thenReturn(Map.ofEntries(Map.entry(USER_2, USER_ROLE_2)));
 
@@ -175,7 +174,7 @@ public class StackRequestManifesterTest {
     public void testSetupCloudStorageAccountMappingWhenCloudStorageWithNoAccountMappingAndIdbmmsSourceAndFailure() {
         when(stackV4Request.getCluster()).thenReturn(clusterV4Request);
         when(stackV4Request.getName()).thenReturn(STACK_NAME);
-        when(idbmmsClient.getMappingsConfig(INTERNAL_ACTOR_CRN, BAD_ENVIRONMENT_CRN, Optional.empty()))
+        when(idbmmsClient.getMappingsConfig(BAD_ENVIRONMENT_CRN, Optional.empty()))
                 .thenThrow(new IdbmmsOperationException("Houston, we have a problem."));
 
         clusterV4Request.setCloudStorage(cloudStorage);
@@ -226,7 +225,7 @@ public class StackRequestManifesterTest {
         when(stackV4Request.getCluster()).thenReturn(clusterV4Request);
         when(stackV4Request.getName()).thenReturn(STACK_NAME);
         clusterV4Request.setCloudStorage(cloudStorage);
-        when(idbmmsClient.getMappingsConfig(INTERNAL_ACTOR_CRN, ENVIRONMENT_CRN, Optional.empty())).thenReturn(mappingsConfig);
+        when(idbmmsClient.getMappingsConfig(ENVIRONMENT_CRN, Optional.empty())).thenReturn(mappingsConfig);
 
         // Enable RAZ for this test and make sure role is checked for.
         clusterV4Request.setRangerRazEnabled(true);
@@ -241,7 +240,7 @@ public class StackRequestManifesterTest {
         when(stackV4Request.getCluster()).thenReturn(clusterV4Request);
         when(stackV4Request.getName()).thenReturn(STACK_NAME);
         clusterV4Request.setCloudStorage(cloudStorage);
-        when(idbmmsClient.getMappingsConfig(INTERNAL_ACTOR_CRN, ENVIRONMENT_CRN, Optional.empty())).thenReturn(mappingsConfig);
+        when(idbmmsClient.getMappingsConfig(ENVIRONMENT_CRN, Optional.empty())).thenReturn(mappingsConfig);
 
         // Enable RAZ without mapping which should throw an error.
         clusterV4Request.setRangerRazEnabled(true);

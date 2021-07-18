@@ -35,6 +35,8 @@ integrationtest:
     server: http://localhost
   redbeams:
     server: http://localhost
+  idbmms:
+    host: idbmms.thunderhead-dev.cloudera.com
   ums:
     # Possible values: default, legacy
     accountKey: default
@@ -120,6 +122,16 @@ integrationtest:
       baseLocation:
       fileSystemType: S3
     hybridCloudSecurityGroupID: sg-0c73a7f815c452e9d
+    # Once the environment is created the ID Broker Mapping Management Service (IDBMMS) mappings can be created.
+    idbmms:
+      # If you do not want to set up any user or group mapping, set 'true'.
+      emptyMappings: true
+      # The role services will be mapped to. The list of services (users) mapped automatically to this role is: "hbase", "hdfs", "hive", "impala", "yarn", "dpprofiler", "zeppelin", "kudu".
+      dataAccessRole:
+      # The role used by ranger plugin to write audit logs. The list of services (users) mapped automatically to this role is: "kafka", "solr", "knox", "atlas".
+      rangerAuditRole:
+      # A set of custom user/group to role mappings, or use 'emptyMappings: true', if you do not want to set up any user or group mapping.
+      mappings:
 
   # azure parameters
   azure:

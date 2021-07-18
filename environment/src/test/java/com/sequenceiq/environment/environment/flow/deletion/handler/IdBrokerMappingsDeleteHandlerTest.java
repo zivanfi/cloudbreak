@@ -1,6 +1,5 @@
 package com.sequenceiq.environment.environment.flow.deletion.handler;
 
-import static com.sequenceiq.cloudbreak.auth.ThreadBasedUserCrnProvider.INTERNAL_ACTOR_CRN;
 import static com.sequenceiq.environment.environment.flow.deletion.event.EnvDeleteHandlerSelectors.DELETE_IDBROKER_MAPPINGS_EVENT;
 import static com.sequenceiq.environment.environment.flow.deletion.event.EnvDeleteStateSelectors.FAILED_ENV_DELETE_EVENT;
 import static com.sequenceiq.environment.environment.flow.deletion.event.EnvDeleteStateSelectors.START_S3GUARD_TABLE_DELETE_EVENT;
@@ -101,7 +100,7 @@ class IdBrokerMappingsDeleteHandlerTest {
 
         underTest.accept(environmentDtoEvent);
 
-        verify(idbmmsClient, never()).deleteMappings(eq(INTERNAL_ACTOR_CRN), anyString(), eq(Optional.empty()));
+        verify(idbmmsClient, never()).deleteMappings(anyString(), eq(Optional.empty()));
         verify(eventSender).sendEvent(eventArgumentCaptor.capture(), headersArgumentCaptor.capture());
         verifyEnvDeleteEvent();
     }
@@ -112,7 +111,7 @@ class IdBrokerMappingsDeleteHandlerTest {
 
         underTest.accept(environmentDtoEvent);
 
-        verify(idbmmsClient, never()).deleteMappings(eq(INTERNAL_ACTOR_CRN), anyString(), eq(Optional.empty()));
+        verify(idbmmsClient, never()).deleteMappings(anyString(), eq(Optional.empty()));
         verify(eventSender).sendEvent(eventArgumentCaptor.capture(), headersArgumentCaptor.capture());
         verifyEnvDeleteEvent();
     }
@@ -123,7 +122,7 @@ class IdBrokerMappingsDeleteHandlerTest {
 
         underTest.accept(environmentDtoEvent);
 
-        verify(idbmmsClient).deleteMappings(INTERNAL_ACTOR_CRN, ENVIRONMENT_CRN, Optional.empty());
+        verify(idbmmsClient).deleteMappings(ENVIRONMENT_CRN, Optional.empty());
         verify(eventSender).sendEvent(eventArgumentCaptor.capture(), headersArgumentCaptor.capture());
         verifyEnvDeleteEvent();
     }
@@ -133,11 +132,11 @@ class IdBrokerMappingsDeleteHandlerTest {
         when(environmentService.findEnvironmentById(ENVIRONMENT_ID)).thenReturn(Optional.of(createEnvironment(IdBrokerMappingSource.IDBMMS)));
         doThrow(new IdbmmsOperationException(MESSAGE, createStatusRuntimeException(Status.Code.NOT_FOUND)))
                 .when(idbmmsClient)
-                .deleteMappings(INTERNAL_ACTOR_CRN, ENVIRONMENT_CRN, Optional.empty());
+                .deleteMappings(ENVIRONMENT_CRN, Optional.empty());
 
         underTest.accept(environmentDtoEvent);
 
-        verify(idbmmsClient).deleteMappings(INTERNAL_ACTOR_CRN, ENVIRONMENT_CRN, Optional.empty());
+        verify(idbmmsClient).deleteMappings(ENVIRONMENT_CRN, Optional.empty());
         verify(eventSender).sendEvent(eventArgumentCaptor.capture(), headersArgumentCaptor.capture());
         verifyEnvDeleteEvent();
     }
@@ -146,11 +145,11 @@ class IdBrokerMappingsDeleteHandlerTest {
     void acceptTestEnvironmentAndIdbmmsAndFailure() {
         when(environmentService.findEnvironmentById(ENVIRONMENT_ID)).thenReturn(Optional.of(createEnvironment(IdBrokerMappingSource.IDBMMS)));
         Exception exception = new IdbmmsOperationException(MESSAGE, createStatusRuntimeException(Status.Code.ABORTED));
-        doThrow(exception).when(idbmmsClient).deleteMappings(INTERNAL_ACTOR_CRN, ENVIRONMENT_CRN, Optional.empty());
+        doThrow(exception).when(idbmmsClient).deleteMappings(ENVIRONMENT_CRN, Optional.empty());
 
         underTest.accept(environmentDtoEvent);
 
-        verify(idbmmsClient).deleteMappings(INTERNAL_ACTOR_CRN, ENVIRONMENT_CRN, Optional.empty());
+        verify(idbmmsClient).deleteMappings(ENVIRONMENT_CRN, Optional.empty());
         verify(mockExceptionProcessor, times(1)).handle(any(), any(), any(), any());
         verify(mockExceptionProcessor, times(1))
                 .handle(any(HandlerFailureConjoiner.class), any(Logger.class), eq(eventSender), eq(DELETE_IDBROKER_MAPPINGS_EVENT.selector()));

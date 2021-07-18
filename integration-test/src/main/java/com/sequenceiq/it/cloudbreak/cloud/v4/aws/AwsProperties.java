@@ -1,5 +1,6 @@
 package com.sequenceiq.it.cloudbreak.cloud.v4.aws;
 
+import java.util.List;
 import java.util.Set;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -30,6 +31,8 @@ public class AwsProperties {
     private final Baseimage baseimage = new Baseimage();
 
     private final Cloudstorage cloudstorage = new Cloudstorage();
+
+    private final Idbmms idbmms = new Idbmms();
 
     public String getAvailabilityZone() {
         return availabilityZone;
@@ -93,6 +96,10 @@ public class AwsProperties {
 
     public Cloudstorage getCloudStorage() {
         return cloudstorage;
+    }
+
+    public Idbmms getIdbmms() {
+        return idbmms;
     }
 
     public String getDynamoTableName() {
@@ -248,6 +255,49 @@ public class AwsProperties {
             public void setInstanceProfile(String instanceProfile) {
                 this.instanceProfile = instanceProfile;
             }
+        }
+    }
+
+    public static class Idbmms {
+
+        private boolean emptyMappings;
+
+        private String dataAccessRole;
+
+        private String rangerAuditRole;
+
+        private List<Set<String>> mappings;
+
+        public boolean getEmptyMappings() {
+            return emptyMappings;
+        }
+
+        public void setEmptyMappings(boolean emptyMappings) {
+            this.emptyMappings = emptyMappings;
+        }
+
+        public String getDataAccessRole() {
+            return dataAccessRole;
+        }
+
+        public void setDataAccessRole(String dataAccessRole) {
+            this.dataAccessRole = dataAccessRole;
+        }
+
+        public String getRangerAuditRole() {
+            return rangerAuditRole;
+        }
+
+        public void setRangerAuditRole(String rangerAuditRole) {
+            this.rangerAuditRole = rangerAuditRole;
+        }
+
+        public List<Set<String>> getMappings() {
+            return mappings;
+        }
+
+        public void setMappings(List<Set<String>> mappings) {
+            this.mappings = mappings;
         }
     }
 }

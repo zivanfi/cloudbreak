@@ -12,28 +12,23 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.annotations.Test;
 
-import com.sequenceiq.common.api.type.Tunnel;
-import com.sequenceiq.environment.api.v1.environment.model.base.IdBrokerMappingSource;
-import com.sequenceiq.environment.api.v1.environment.model.response.EnvironmentStatus;
+import com.sequenceiq.freeipa.api.v1.operation.model.OperationState;
 import com.sequenceiq.it.cloudbreak.SdxClient;
 import com.sequenceiq.it.cloudbreak.client.EnvironmentTestClient;
-import com.sequenceiq.it.cloudbreak.client.IdbmmsTestClient;
+import com.sequenceiq.it.cloudbreak.client.FreeIpaTestClient;
 import com.sequenceiq.it.cloudbreak.client.SdxTestClient;
-import com.sequenceiq.it.cloudbreak.client.StackTestClient;
 import com.sequenceiq.it.cloudbreak.context.Description;
 import com.sequenceiq.it.cloudbreak.context.TestContext;
 import com.sequenceiq.it.cloudbreak.dto.environment.EnvironmentTestDto;
-import com.sequenceiq.it.cloudbreak.dto.idbmms.IdbmmsTestDto;
-import com.sequenceiq.it.cloudbreak.dto.sdx.SdxInternalTestDto;
-import com.sequenceiq.it.cloudbreak.dto.telemetry.TelemetryTestDto;
+import com.sequenceiq.it.cloudbreak.dto.freeipa.FreeIpaTestDto;
+import com.sequenceiq.it.cloudbreak.dto.freeipa.FreeIpaUserSyncTestDto;
+import com.sequenceiq.it.cloudbreak.dto.sdx.SdxTestDto;
 import com.sequenceiq.it.cloudbreak.exception.TestFailException;
 import com.sequenceiq.it.cloudbreak.log.Log;
 import com.sequenceiq.it.cloudbreak.testcase.e2e.sdx.PreconditionSdxE2ETest;
 import com.sequenceiq.it.cloudbreak.util.spot.UseSpotInstances;
 import com.sequenceiq.sdx.api.model.SdxBackupStatusResponse;
 import com.sequenceiq.sdx.api.model.SdxClusterStatusResponse;
-import com.sequenceiq.sdx.api.model.SdxDatabaseAvailabilityType;
-import com.sequenceiq.sdx.api.model.SdxDatabaseRequest;
 import com.sequenceiq.sdx.api.model.SdxRestoreStatusResponse;
 
 public class SdxBackupRestoreTest extends PreconditionSdxE2ETest {
@@ -44,13 +39,10 @@ public class SdxBackupRestoreTest extends PreconditionSdxE2ETest {
     private SdxTestClient sdxTestClient;
 
     @Inject
-    private StackTestClient stackTestClient;
-
-    @Inject
     private EnvironmentTestClient environmentTestClient;
 
     @Inject
-    private IdbmmsTestClient idbmmsTestClient;
+    private FreeIpaTestClient freeIpaTestClient;
 
     private String backupId;
 
@@ -62,9 +54,9 @@ public class SdxBackupRestoreTest extends PreconditionSdxE2ETest {
         createDefaultUser(testContext);
         initializeDefaultBlueprints(testContext);
         createDefaultCredential(testContext);
+        createEnvironmentWithNetworkAndFreeIpa(testContext);
     }
 
-//    @Ignore(value = "We need to wait the CB-13322 (Data Lake database backup request to Cloudbreak failed with status: 409) to be fixed!")
     @Test(dataProvider = TEST_CONTEXT)
     @UseSpotInstances
     @Description(
@@ -74,57 +66,42 @@ public class SdxBackupRestoreTest extends PreconditionSdxE2ETest {
     )
     public void testSDXBackupRestoreCanBeSuccessful(TestContext testContext) {
         testContext
-                .given("telemetry", TelemetryTestDto.class)
-                .withLogging()
-                .withReportClusterLogs()
-                .given(EnvironmentTestDto.class)
-                .withNetwork()
-                .withTelemetry("telemetry")
-                .withTunnel(Tunnel.CLUSTER_PROXY)
-                .withCreateFreeIpa(Boolean.TRUE)
-                .withFreeIpaImage(commonCloudProperties().getImageValidation().getFreeIpaImageCatalog(),
-                        commonCloudProperties().getImageValidation().getFreeIpaImageUuid())
-                .withIdBrokerMappingSource(IdBrokerMappingSource.IDBMMS)
-                .when(environmentTestClient.create())
-                .await(EnvironmentStatus.AVAILABLE)
-                .validate();
-
-        String environmentCrn = testContext.given(EnvironmentTestDto.class).when(environmentTestClient.describe()).getResponse().getCrn();
-        testContext
-                .given(IdbmmsTestDto.class)
-                    .withEnvironment(environmentCrn)
-                .when(idbmmsTestClient.configureMapping())
-                .validate();
-
-        SdxDatabaseRequest sdxDatabaseRequest = new SdxDatabaseRequest();
-        sdxDatabaseRequest.setAvailabilityType(SdxDatabaseAvailabilityType.NON_HA);
-        testContext
-                .given(SdxInternalTestDto.class)
-                    .withDatabase(sdxDatabaseRequest)
+                .given(SdxTestDto.class)
                     .withCloudStorage(getCloudStorageRequest(testContext))
-                .when(sdxTestClient.createInternal())
+                .when(sdxTestClient.create())
                 .await(SdxClusterStatusResponse.RUNNING)
                 .awaitForHealthyInstances()
                 .validate();
 
-        SdxInternalTestDto sdxInternalTestDto = testContext.given(SdxInternalTestDto.class);
-        String cloudStorageBaseLocation = sdxInternalTestDto.getResponse().getCloudStorageBaseLocation();
+        testContext
+                .given(FreeIpaTestDto.class)
+                .when(freeIpaTestClient.describe())
+                .given(FreeIpaUserSyncTestDto.class)
+                .when(freeIpaTestClient.syncAll())
+                .await(OperationState.COMPLETED)
+                .given(EnvironmentTestDto.class)
+                .when(environmentTestClient.describe())
+                .validate();
+
+        SdxTestDto sdxTestDto = testContext.given(SdxTestDto.class);
+        String cloudStorageBaseLocation = sdxTestDto.getResponse().getCloudStorageBaseLocation();
         String backupObject = "backups";
         testContext
-                .given(SdxInternalTestDto.class)
+                .given(SdxTestDto.class)
+                .when(sdxTestClient.sync())
                 .when(sdxTestClient.backup(StringUtils.join(List.of(cloudStorageBaseLocation, backupObject), "/"), null))
                 .await(SdxClusterStatusResponse.RUNNING)
                 .awaitForHealthyInstances()
                 .then(this::validateDatalakeBackupStatus)
                 .then(this::validateDatalakeStatus)
                 .then((tc, testDto, client) -> {
-                    getCloudFunctionality(tc).cloudStorageListContainer(cloudStorageBaseLocation, backupObject, false);
+                    getCloudFunctionality(tc).cloudStorageListContainer(cloudStorageBaseLocation, backupObject, true);
                     return testDto;
                 })
                 .validate();
 
         testContext
-                .given(SdxInternalTestDto.class)
+                .given(SdxTestDto.class)
                 .when(sdxTestClient.restore(backupId, null))
                 .await(SdxClusterStatusResponse.RUNNING)
                 .awaitForHealthyInstances()
@@ -133,7 +110,7 @@ public class SdxBackupRestoreTest extends PreconditionSdxE2ETest {
                 .validate();
     }
 
-    private SdxInternalTestDto validateDatalakeStatus(TestContext testContext, SdxInternalTestDto testDto, SdxClient client) {
+    private SdxTestDto validateDatalakeStatus(TestContext testContext, SdxTestDto testDto, SdxClient client) {
         String statuReason = client.getDefaultClient()
                 .sdxEndpoint()
                 .getDetailByCrn(testDto.getCrn(), Collections.emptySet())
@@ -151,7 +128,7 @@ public class SdxBackupRestoreTest extends PreconditionSdxE2ETest {
         return testDto;
     }
 
-    private SdxInternalTestDto validateDatalakeBackupStatus(TestContext testContext, SdxInternalTestDto testDto, SdxClient client) {
+    private SdxTestDto validateDatalakeBackupStatus(TestContext testContext, SdxTestDto testDto, SdxClient client) {
         String sdxName = testDto.getName();
         backupId = client.getDefaultClient()
                 .sdxEndpoint()
@@ -172,7 +149,7 @@ public class SdxBackupRestoreTest extends PreconditionSdxE2ETest {
         return testDto;
     }
 
-    private SdxInternalTestDto validateDatalakeRestoreStatus(TestContext testContext, SdxInternalTestDto testDto, SdxClient client) {
+    private SdxTestDto validateDatalakeRestoreStatus(TestContext testContext, SdxTestDto testDto, SdxClient client) {
         String sdxName = testDto.getName();
         String status;
         String statusReason;

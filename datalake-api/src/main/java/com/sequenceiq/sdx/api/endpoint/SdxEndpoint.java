@@ -135,7 +135,7 @@ public interface SdxEndpoint {
     @Path("{name}/sync")
     @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(value = "sync SDX cluster by name", produces = MediaType.APPLICATION_JSON, nickname = "syncSdx")
-    void sync(@PathParam("name") String name);
+    FlowIdentifier sync(@PathParam("name") String name);
 
     @POST
     @Path("/crn/{crn}/sync")

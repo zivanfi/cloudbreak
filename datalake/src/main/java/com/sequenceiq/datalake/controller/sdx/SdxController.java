@@ -237,8 +237,8 @@ public class SdxController implements SdxEndpoint {
 
     @Override
     @CheckPermissionByResourceName(action = AuthorizationResourceAction.SYNC_DATALAKE)
-    public void sync(@ResourceName String name) {
-        sdxService.sync(name, ThreadBasedUserCrnProvider.getAccountId());
+    public FlowIdentifier sync(@ResourceName String name) {
+        return sdxService.sync(name, ThreadBasedUserCrnProvider.getAccountId());
     }
 
     @Override

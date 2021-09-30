@@ -39,10 +39,21 @@
         <appender-ref ref="STDOUT"/>
     </root>
 
-    <logger name="com.sequenceiq" level="${CB_LOG_LEVEL:-DEBUG}" additivity="false">
-        <appender-ref ref="CB_FILE_BASED"/>
-        <appender-ref ref="STDOUT"/>
+
+    <appender name="PERFORMANCE" class="ch.qos.logback.core.FileAppender">
+        <file>/Users/smaniraju/sanm/useful/events/events-perf.log</file>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <Pattern>
+                %logger{36} - %msg%n
+            </Pattern>
+        </encoder>
+    </appender>
+
+    <logger name="PERFORMANCE" level="${CB_LOG_LEVEL:-DEBUG}" additivity="false">
+        <appender-ref ref="PERFORMANCE"/>
     </logger>
+
+
 
     <logger name="com.zaxxer" level="${CB_LOG_LEVEL:-INFO}" additivity="false">
         <appender-ref ref="CB_FILE_BASED"/>

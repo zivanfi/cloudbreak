@@ -36,6 +36,10 @@ import com.sequenceiq.cloudbreak.service.stack.StackService;
 public class ClusterUpscaleService {
     private static final Logger LOGGER = LoggerFactory.getLogger(ClusterUpscaleService.class);
 
+
+    private static final Logger PERF_LOGGER = LoggerFactory.getLogger("PERFORMANCE");
+
+
     @Inject
     private StackService stackService;
 
@@ -69,7 +73,11 @@ public class ClusterUpscaleService {
         LOGGER.debug("Start adding cluster containers");
         Map<String, List<String>> hostsPerHostGroup = new HashMap<>();
 
+        long timeStart = System.currentTimeMillis();
         Map<String, String> hosts = hostRunner.addClusterServices(stackId, hostGroupName, scalingAdjustment);
+        long timeEnd = System.currentTimeMillis();
+        PERF_LOGGER.error("'{}' : addClusterServices : '{}' : '{}'",
+                this.getClass(), ((timeEnd-timeStart) / 1000), scalingAdjustment);
         if (primaryGatewayChanged) {
             clusterServiceRunner.updateAmbariClientConfig(stack, stack.getCluster());
         }
@@ -79,10 +87,24 @@ public class ClusterUpscaleService {
             }
             hostsPerHostGroup.get(hostGroupName).add(hostName);
         }
-        clusterService.updateInstancesToRunning(stack.getCluster().getId(), hostsPerHostGroup);
 
+          timeStart = System.currentTimeMillis();
+        clusterService.updateInstancesToRunning(stack.getCluster().getId(), hostsPerHostGroup);
+         timeEnd = System.currentTimeMillis();
+         PERF_LOGGER.error("'{}' : updateInstancesToRunning : '{}' : '{}'",
+                 this.getClass().getName(), ((timeEnd-timeStart) / 1000), scalingAdjustment);
+
+
+          timeStart = System.currentTimeMillis();
         ClusterApi connector = clusterApiConnectors.getConnector(stack);
         connector.waitForHosts(stackService.getByIdWithListsInTransaction(stackId).getRunningInstanceMetaDataSet());
+        timeEnd = System.currentTimeMillis();
+
+
+         PERF_LOGGER.error("'{}' : waitForHosts : '{}' : '{}'",
+                 this.getClass().getName(),
+                 ((timeEnd-timeStart) / 1000), scalingAdjustment);
+
     }
 
     public void uploadRecipesOnNewHosts(Long stackId, String hostGroupName) throws CloudbreakException {
@@ -100,7 +122,13 @@ public class ClusterUpscaleService {
         HostGroup hostGroup = Optional.ofNullable(hostGroupService.getByClusterIdAndNameWithRecipes(stack.getCluster().getId(), hostGroupName))
                 .orElseThrow(NotFoundException.notFound("hostgroup", hostGroupName));
         Set<InstanceMetaData> runningInstanceMetaDataSet = hostGroup.getInstanceGroup().getRunningInstanceMetaDataSet();
+
+
+        long timeStart = System.currentTimeMillis();
         recipeEngine.executePostAmbariStartRecipes(stack, hostGroup.getRecipes());
+        long timeEnd = System.currentTimeMillis();
+        PERF_LOGGER.error("'{}' : executePostAmbariStartRecipes: '{}'", this.getClass().getName(), ((timeEnd-timeStart) / 1000));
+
         ClusterApi connector = clusterApiConnectors.getConnector(stack);
         List<String> upscaledHosts = connector.upscaleCluster(hostGroup, runningInstanceMetaDataSet);
         if (shouldRestartServices(repair, restartServices, stack)) {

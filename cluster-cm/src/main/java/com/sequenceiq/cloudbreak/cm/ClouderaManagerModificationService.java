@@ -94,6 +94,10 @@ public class ClouderaManagerModificationService implements ClusterModificationSe
 
     private static final Boolean START_ROLES_ON_UPSCALED_NODES = Boolean.TRUE;
 
+
+
+    private static final Logger PERF_LOGGER = LoggerFactory.getLogger("PERFORMANCE");
+
     @Inject
     private ClouderaManagerApiClientProvider clouderaManagerApiClientProvider;
 
@@ -136,6 +140,7 @@ public class ClouderaManagerModificationService implements ClusterModificationSe
     @Inject
     private ClouderaManagerCommonCommandService clouderaManagerCommonCommandService;
 
+
     private final Stack stack;
 
     private final HttpClientConfig clientConfig;
@@ -169,18 +174,52 @@ public class ClouderaManagerModificationService implements ClusterModificationSe
             Set<String> clusterHostnames = getClusterHostnamesFromCM(clustersResourceApi, clusterName);
             List<ApiHost> hosts = getHostsFromCM();
 
+            long timeStart = System.currentTimeMillis();
             LOGGER.debug("Processing outdated cluster hosts. Host group: [{}].", hostGroupName);
             setHostRackIdForOutdatedClusterHosts(instanceMetaDatas, clusterHostnames, hosts);
-
             LOGGER.debug("Processing upscaled cluster hosts. Host group: [{}].", hostGroupName);
+
+            long timeEnd = System.currentTimeMillis();
+           PERF_LOGGER.error("'{}' : setHostRackIdForOutdatedClusterHosts: '{}'", this.getClass().getName(), ((timeEnd-timeStart) / 1000));
+
+
             Map<String, InstanceMetaData> upscaleInstancesMap = getInstancesMap(clusterHostnames, instanceMetaDatas, true);
             if (!upscaleInstancesMap.isEmpty()) {
                 Map<String, ApiHost> upscaleHostsMap = getHostsMap(upscaleInstancesMap, hosts);
+                     timeStart = System.currentTimeMillis();
+
                 setHostRackIdBatch(upscaleInstancesMap, upscaleHostsMap);
+                    timeEnd = System.currentTimeMillis();
+
+             PERF_LOGGER.error("'{}' : setHostRackIdBatch: '{}'", this.getClass().getName(), ((timeEnd-timeStart) / 1000));
+
+
+                 timeStart = System.currentTimeMillis();
                 ApiHostRefList body = createUpscaledHostRefList(upscaleInstancesMap, upscaleHostsMap);
+                    timeEnd = System.currentTimeMillis();
+
+             PERF_LOGGER.error("'{}' : createUpscaledHostRefList: '{}'", this.getClass().getName(), ((timeEnd-timeStart) / 1000));
+
+                   timeStart = System.currentTimeMillis();
+
                 clustersResourceApi.addHosts(clusterName, body);
+                     timeEnd = System.currentTimeMillis();
+
+             PERF_LOGGER.error("'{}' : addHosts: '{}'", this.getClass().getName(), ((timeEnd-timeStart) / 1000));
+
+                 timeStart = System.currentTimeMillis();
                 activateParcels(clustersResourceApi);
+                     timeEnd = System.currentTimeMillis();
+
+   PERF_LOGGER.error("'{}' : activateParcels: '{}'", this.getClass().getName(), ((timeEnd-timeStart) / 1000));
+
+                timeStart = System.currentTimeMillis();
                 applyHostGroupRolesOnUpscaledHosts(body, hostGroupName);
+                     timeEnd = System.currentTimeMillis();
+
+        PERF_LOGGER.error("'{}' : applyHostGroupRolesOnUpscaledHosts: '{}'", this.getClass().getName(), ((timeEnd-timeStart) / 1000));
+
+
             } else {
                 redistributeParcelsForRecovery();
                 activateParcels(clustersResourceApi);
@@ -565,12 +604,21 @@ public class ClouderaManagerModificationService implements ClusterModificationSe
 
     private void applyHostGroupRolesOnUpscaledHosts(ApiHostRefList body, String hostGroupName) throws ApiException, CloudbreakException {
         LOGGER.debug("Applying host template on upscaled hosts. Host group: [{}]", hostGroupName);
+
+
+
+        long timeStart = System.currentTimeMillis();
         HostTemplatesResourceApi templatesResourceApi = clouderaManagerApiFactory.getHostTemplatesResourceApi(apiClient);
         ApiCommand applyHostTemplateCommand = templatesResourceApi.applyHostTemplate(stack.getName(), hostGroupName, START_ROLES_ON_UPSCALED_NODES, body);
         PollingResult hostTemplatePollingResult = clouderaManagerPollingServiceProvider.startPollingCmApplyHostTemplate(
                 stack, apiClient, applyHostTemplateCommand.getId());
         handlePollingResult(hostTemplatePollingResult, "Cluster was terminated while waiting for host template to apply",
                 "Timeout while Cloudera Manager was applying host template.");
+
+        long timeEnd = System.currentTimeMillis();
+
+         PERF_LOGGER.error("'{}' : applyHostGroupRolesOnUpscaledHosts : '{}' ",
+                 this.getClass().getName(), ((timeEnd-timeStart) / 1000));
         LOGGER.debug("Applied host template on upscaled hosts. Host group: [{}]", hostGroupName);
     }
 

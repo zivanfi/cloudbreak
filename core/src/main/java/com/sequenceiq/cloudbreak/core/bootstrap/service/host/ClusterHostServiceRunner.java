@@ -242,24 +242,62 @@ public class ClusterHostServiceRunner {
     @Inject
     private FreeIpaConfigProvider freeIpaConfigProvider;
 
+    private static final Logger PERF_LOGGER = LoggerFactory.getLogger("PERFORMANCE");
+
+
     public void runClusterServices(@Nonnull Stack stack, @Nonnull Cluster cluster, Map<String, String> candidateAddresses) {
         try {
             Set<Node> allNodes = stackUtil.collectNodes(stack);
             Set<Node> reachableNodes = stackUtil.collectAndCheckReachableNodes(stack, candidateAddresses.keySet());
             GatewayConfig primaryGatewayConfig = gatewayConfigService.getPrimaryGatewayConfig(stack);
             List<GatewayConfig> gatewayConfigs = gatewayConfigService.getAllGatewayConfigs(stack);
+
+            long timeStart = System.currentTimeMillis();
             SaltConfig saltConfig = createSaltConfig(stack, cluster, primaryGatewayConfig, gatewayConfigs, allNodes, reachableNodes);
+
+            long timeEnd = System.currentTimeMillis();
+             PERF_LOGGER.error("'{}' : createSaltConfig : '{}' ", this.getClass().getName(), ((timeEnd-timeStart) / 1000));
+
+
             ExitCriteriaModel exitCriteriaModel = clusterDeletionBasedModel(stack.getId(), cluster.getId());
+
+           timeStart = System.currentTimeMillis();
             modifyStartupMountRole(stack, reachableNodes, GrainOperation.ADD);
+            timeEnd = System.currentTimeMillis();
+             PERF_LOGGER.error("'{}' : modifyStartupMountRole : '{}' ", this.getClass().getName(), ((timeEnd-timeStart) / 1000));
+
+              timeStart = System.currentTimeMillis();
             hostOrchestrator.initServiceRun(gatewayConfigs, allNodes, reachableNodes, saltConfig, exitCriteriaModel, stack.getCloudPlatform());
+           timeEnd = System.currentTimeMillis();
+            PERF_LOGGER.error("'{}' : initServiceRun : '{}' ", this.getClass().getName(), ((timeEnd-timeStart) / 1000));
+
+
+
+             timeStart = System.currentTimeMillis();
             if (CollectionUtils.isEmpty(candidateAddresses)) {
                 mountDisks.mountAllDisks(stack.getId());
             } else {
                 mountDisks.mountDisksOnNewNodes(stack.getId(), new HashSet<>(candidateAddresses.values()), allNodes);
             }
+             timeEnd = System.currentTimeMillis();
+            PERF_LOGGER.error("'{}' : mountDisksOnNewNodes : '{}' ", this.getClass().getName(), ((timeEnd-timeStart) / 1000));
+
+            timeStart = System.currentTimeMillis();
             recipeEngine.executePreClusterManagerRecipes(stack, hostGroupService.getRecipesByCluster(cluster.getId()));
+             timeEnd = System.currentTimeMillis();
+            PERF_LOGGER.error("'{}' : executePreClusterManagerRecipes : '{}' ", this.getClass().getName(), ((timeEnd-timeStart) / 1000));
+
+
+             timeStart = System.currentTimeMillis();
             hostOrchestrator.runService(gatewayConfigs, reachableNodes, saltConfig, exitCriteriaModel);
+              timeEnd = System.currentTimeMillis();
+            PERF_LOGGER.error("'{}' : hostOrchestrator:runservice : '{}' ", this.getClass().getName(), ((timeEnd-timeStart) / 1000));
+
+            timeStart = System.currentTimeMillis();
             modifyStartupMountRole(stack, reachableNodes, GrainOperation.REMOVE);
+              timeEnd = System.currentTimeMillis();
+             PERF_LOGGER.error("'{}' : modifyStartupMountRole : '{}' ", this.getClass().getName(), ((timeEnd-timeStart) / 1000));
+
         } catch (CloudbreakOrchestratorCancelledException e) {
             throw new CancellationException(e.getMessage());
         } catch (CloudbreakOrchestratorException | IOException | CloudbreakException e) {

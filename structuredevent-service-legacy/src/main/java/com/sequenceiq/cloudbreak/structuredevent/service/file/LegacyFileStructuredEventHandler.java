@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sequenceiq.cloudbreak.structuredevent.conf.StructuredEventEnablementConfig;
 import com.sequenceiq.cloudbreak.structuredevent.event.StructuredEvent;
+import com.sequenceiq.cloudbreak.structuredevent.event.StructuredFlowEvent;
 import com.sequenceiq.flow.reactor.api.handler.EventHandler;
 
 import reactor.bus.Event;
@@ -37,8 +38,12 @@ public class LegacyFileStructuredEventHandler<T extends StructuredEvent> impleme
     public void accept(Event<T> structuredEvent) {
         File file = new File(structuredEventEnablementConfig.getAuditFilePath());
         try {
+            T o = structuredEvent.getData();
             String structuredEventAsJson = objectMapper.writeValueAsString(structuredEvent);
-            FileUtils.writeStringToFile(file, structuredEventAsJson + '\n', StandardCharsets.UTF_8, true);
+            if(o instanceof StructuredFlowEvent){
+               FileUtils.writeStringToFile(file, structuredEventAsJson + '\n', StandardCharsets.UTF_8, true);
+            }
+
             LOGGER.trace("Structured event\n{}\nhas been sent to file: {}", structuredEventAsJson, file.getAbsolutePath());
         } catch (IOException e) {
             LOGGER.error("Can not write structured event to file " + file.getAbsolutePath(), e);

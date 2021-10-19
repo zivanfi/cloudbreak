@@ -260,7 +260,7 @@ public class AlertValidatorTest {
         underTest.validateDistroXAutoscaleClusterRequest(aCluster, request);
     }
 
-        @Test
+    @Test
     public void testValidateDistroXAutoscaleClusterRequestWhenClusterSizeExceeded() {
         DistroXAutoscaleClusterRequest request = new DistroXAutoscaleClusterRequest();
         ScalingPolicyRequest sp1 = new ScalingPolicyRequest();

@@ -207,6 +207,14 @@ public class ClusterService {
         clusterRepository.setClusterLastEvaluated(clusterId, lastEvaluated);
     }
 
+    public void setEnvironmentCrn(Long clusterId, String environmentCrn) {
+        clusterRepository.setEnvironmentCrn(clusterId, environmentCrn);
+    }
+
+    public void setMachineUserCrn(Long clusterId, String machineUserCrn) {
+        clusterRepository.setMachineUserCrn(clusterId, machineUserCrn);
+    }
+
     public void setLastScalingActivity(Long clusterId, Long lastScalingActivity) {
         clusterRepository.setClusterLastScalingActivity(clusterId, lastScalingActivity);
     }
@@ -264,6 +272,12 @@ public class ClusterService {
         cluster.getTimeAlerts().clear();
         save(cluster);
         return cluster;
+    }
+
+    public Integer countByEnvironmentCrn(String environmentCrn) {
+        Integer countByEnvironmentCrn = clusterRepository.countByEnvironmentCrn(environmentCrn);
+        LOGGER.debug("Count of DH Clusters with Autoscaling by environmentcrn '{}' is '{}'", environmentCrn, countByEnvironmentCrn);
+        return countByEnvironmentCrn;
     }
 
     private void calculateClusterStateMetrics() {

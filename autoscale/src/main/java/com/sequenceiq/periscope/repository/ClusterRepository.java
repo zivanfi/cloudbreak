@@ -70,6 +70,8 @@ public interface ClusterRepository extends CrudRepository<Cluster, Long> {
 
     int countByStateAndAutoscalingEnabledAndPeriscopeNodeId(ClusterState state, boolean autoscalingEnabled, String nodeId);
 
+    int countByEnvironmentCrn(String environmentCrn);
+
     List<Cluster> findAllByPeriscopeNodeIdNotInOrPeriscopeNodeIdIsNull(List<String> nodes);
 
     @Modifying
@@ -79,6 +81,14 @@ public interface ClusterRepository extends CrudRepository<Cluster, Long> {
     @Modifying
     @Query("UPDATE Cluster c SET c.lastEvaluated = :lastEvaluated WHERE c.id = :clusterId")
     void setClusterLastEvaluated(@Param("clusterId") Long clusterId, @Param("lastEvaluated") Long lastEvaluated);
+
+    @Modifying
+    @Query("UPDATE Cluster c SET c.environmentCrn = :environmentCrn WHERE c.id = :clusterId")
+    void setEnvironmentCrn(@Param("clusterId") Long clusterId, @Param("environmentCrn") String environmentCrn);
+
+    @Modifying
+    @Query("UPDATE Cluster c SET c.machineUserCrn = :machineUserCrn WHERE c.id = :clusterId")
+    void setMachineUserCrn(@Param("clusterId") Long clusterId, @Param("machineUserCrn") String machineUserCrn);
 
     @Modifying
     @Query("UPDATE Cluster c SET c.lastScalingActivity = :lastScalingActivity WHERE c.id = :clusterId")

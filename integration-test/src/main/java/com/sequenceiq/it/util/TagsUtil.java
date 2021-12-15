@@ -86,19 +86,17 @@ public class TagsUtil {
         SoftAssert softAssert = new SoftAssert();
 
         try {
-            validateTestNameTag(response, testContext);
-            DEFAULT_TAGS.forEach(tag -> {
-                if (tag.equalsIgnoreCase("owner")) {
-                    validateOwnerTag(response, tag, testContext);
-                } else if (tag.equalsIgnoreCase("Cloudera-Creator-Resource-Name")) {
-                    validateClouderaCreatorResourceNameTag(response, tag, testContext);
+            validateTestNameTag(getTagValueFromResponse(response, TEST_NAME_TAG), TEST_NAME_TAG, testContext);
+            DEFAULT_TAGS.forEach(tagKey -> {
+                if (tagKey.equalsIgnoreCase("owner")) {
+                    validateOwnerTag(getTagValueFromResponse(response, tagKey), tagKey, testContext);
+                } else if (tagKey.equalsIgnoreCase("Cloudera-Creator-Resource-Name")) {
+                    validateClouderaCreatorResourceNameTag(getTagValueFromResponse(response, tagKey), tagKey, testContext);
                 } else {
-                    String tagValue = response.getTagValue(tag);
-                    if (StringUtils.isEmpty(tagValue)) {
-                        tagValue = response.getTagValue(tag.toLowerCase());
+                    if (StringUtils.isNotBlank(getTagValueFromResponse(response, tagKey))) {
+                        Log.log(LOGGER, format(" PASSED:: Default tag: [%s] value is: [%s] present! ", tagKey, getTagValueFromResponse(response, tagKey)));
                     }
-                    Log.log(LOGGER, format(" PASSED:: Default tag: [%s] value is: [%s] present! ", tag, tagValue));
-                    softAssert.assertNotNull(tagValue, format(MISSING_DEFAULT_TAG, tag));
+                    softAssert.assertNotNull(getTagValueFromResponse(response, tagKey), format(MISSING_DEFAULT_TAG, tagKey));
                 }
             });
             softAssert.assertAll();
@@ -121,80 +119,76 @@ public class TagsUtil {
         return tag;
     }
 
-    private String sanitize(String value) {
-        return value.split("@")[0].toLowerCase().replaceAll("[^\\w]", "-");
+    private String sanitize(String tagValue) {
+        return tagValue.split("@")[0].toLowerCase().replaceAll("[^\\w]", "-");
     }
 
     private boolean gcpLabelTransformedValue(String tagValue, String rawValue) {
         return tagValue.equals(gcpLabelUtil.transformLabelKeyOrValue(rawValue));
     }
 
-    private void validateOwnerTag(TaggedResponse response, String tag, TestContext testContext) {
-        String tagValue = response.getTagValue(tag);
+    private void validateOwnerTag(String tagValue, String tagKey, TestContext testContext) {
         String actingUserName = testContext.getActingUserName();
 
         if (StringUtils.isNotEmpty(tagValue)) {
             if (tagValue.equals(actingUserName) || tagValue.equals(sanitize(actingUserName))) {
-                Log.log(LOGGER, format(" PASSED:: Default tag: [%s] value: [%s] equals [%s] acting user name! ", tag, tagValue, actingUserName));
+                Log.log(LOGGER, format(" PASSED:: Default tag: [%s] value: [%s] equals [%s] acting user name! ", tagKey, tagValue, actingUserName));
             } else if (gcpLabelTransformedValue(tagValue, actingUserName)) {
-                Log.log(LOGGER, format(" PASSED:: Default tag: [%s] value: [%s] equals [%s] acting user name transformed to a GCP label value! ", tag,
+                Log.log(LOGGER, format(" PASSED:: Default tag: [%s] value: [%s] equals [%s] acting user name transformed to a GCP label value! ", tagKey,
                         tagValue, actingUserName));
             } else {
-                String message = format(ACTING_USER_NAME_VALUE_FAILURE_PATTERN, tag, tagValue, actingUserName);
+                String message = format(ACTING_USER_NAME_VALUE_FAILURE_PATTERN, tagKey, tagValue, actingUserName);
                 LOGGER.error(message);
                 throw new TestFailException(message);
             }
         } else {
-            String message = format(TAG_VALUE_IS_NULL_FAILURE_PATTERN, tag);
+            String message = format(TAG_VALUE_IS_NULL_FAILURE_PATTERN, tagKey);
             throw new TestFailException(message);
         }
     }
 
-    private void validateClouderaCreatorResourceNameTag(TaggedResponse response, String tag, TestContext testContext) {
-        String tagValue = response.getTagValue(tag);
-        String actingUser = getActingUser(testContext);
-
+    private void validateClouderaCreatorResourceNameTag(String tagValue, String tagKey, TestContext testContext) {
+        String actingUser = getActingUserCrn(testContext);
         if (StringUtils.isNotEmpty(tagValue) && StringUtils.isNotEmpty(actingUser)) {
             if (tagValue.equals(actingUser)) {
-                Log.log(LOGGER, format(" PASSED:: Default tag: [%s] value: [%s] equals [%s] acting user CRN! ", tag, tagValue, actingUser));
+                Log.log(LOGGER, format(" PASSED:: Default tag: [%s] value: [%s] equals [%s] acting user CRN! ", tagKey, tagValue, actingUser));
             } else if (gcpLabelTransformedValue(tagValue, actingUser)) {
-                Log.log(LOGGER, format(" PASSED:: Default tag: [%s] value: [%s] equals [%s] acting user CRN transformed to a GCP label value! ", tag, tagValue,
-                        actingUser));
+                Log.log(LOGGER, format(" PASSED:: Default tag: [%s] value: [%s] equals [%s] acting user CRN transformed to a GCP label value! ", tagKey,
+                        tagValue, actingUser));
             } else {
                 Crn actingUserCrn = java.util.Objects.requireNonNull(Crn.fromString(actingUser));
                 Crn creatorCrn = java.util.Objects.requireNonNull(Crn.fromString(tagValue));
 
                 if (crnEqualsWithoutConsideringPartition(actingUserCrn, creatorCrn)) {
-                    Log.log(LOGGER, format(" PASSED:: Default tag: [%s] value: [%s] equals [%s] acting user CRN partitions! ", tag, creatorCrn,
+                    Log.log(LOGGER, format(" PASSED:: Default tag: [%s] value: [%s] equals [%s] acting user CRN partitions! ", tagKey, creatorCrn,
                             actingUserCrn));
                 } else {
-                    String message = format(ACTING_USER_CRN_VALUE_FAILURE_PATTERN, tag, tagValue, actingUserCrn);
+                    String message = format(ACTING_USER_CRN_VALUE_FAILURE_PATTERN, tagKey, tagValue, actingUserCrn);
                     LOGGER.error(message);
                     throw new TestFailException(message);
                 }
             }
         } else {
             throw new TestFailException(format("[%s] tag validation is not possible, because of either the tag value [%s] or acting user Crn [%s]" +
-                            " is empty or null!", tag, tagValue, actingUser));
+                            " is empty or null!", tagKey, tagValue, actingUser));
         }
     }
 
-    private void validateTestNameTag(TaggedResponse response, TestContext testContext) {
-        String tagValue = response.getTagValue(TEST_NAME_TAG);
+    private void validateTestNameTag(String tagValue, String tagKey, TestContext testContext) {
         String testName = testContext.getTestMethodName().orElseThrow(() -> new TestFailException("Test method name cannot be found for tag validation!"));
 
         if (StringUtils.isNotEmpty(tagValue)) {
             testName = applyLengthRestrictions(testContext.getCloudPlatform(), testName);
 
             if (tagValue.equalsIgnoreCase(testName)) {
-                Log.log(LOGGER, format(" PASSED:: [%s] tag value: [%s] equals [%s] test method name! ", TEST_NAME_TAG, tagValue, testName));
+                Log.log(LOGGER, format(" PASSED:: [%s] tag value: [%s] equals [%s] test method name! ", tagKey, tagValue, testName));
             } else {
-                String message = format(TEST_NAME_TAG_VALUE_FAILURE_PATTERN, TEST_NAME_TAG, tagValue, testName);
+                String message = format(TEST_NAME_TAG_VALUE_FAILURE_PATTERN, tagKey, tagValue, testName);
                 LOGGER.error(message);
                 throw new TestFailException(message);
             }
         } else {
-            String message = format(TAG_VALUE_IS_NULL_FAILURE_PATTERN, TEST_NAME_TAG);
+            String message = format(TAG_VALUE_IS_NULL_FAILURE_PATTERN, tagKey);
             throw new TestFailException(message);
         }
     }
@@ -207,11 +201,20 @@ public class TagsUtil {
                 && Objects.equal(actingUserCrn.getResource(), creatorCrn.getResource());
     }
 
-    private String getActingUser(TestContext testContext) {
+    private String getActingUserCrn(TestContext testContext) {
         try {
             return testContext.getActingUserCrn().toString();
         } catch (NullPointerException e) {
             return null;
         }
+    }
+
+    private String getTagValueFromResponse(TaggedResponse response, String tagKey) {
+        String tagValue = response.getTagValue(tagKey);
+
+        if (StringUtils.isBlank(tagValue)) {
+            tagValue = response.getTagValue(tagKey.toLowerCase());
+        }
+        return tagValue;
     }
 }

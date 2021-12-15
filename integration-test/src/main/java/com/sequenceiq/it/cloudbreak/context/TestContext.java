@@ -49,6 +49,7 @@ import com.sequenceiq.it.cloudbreak.cloud.v4.CommonCloudProperties;
 import com.sequenceiq.it.cloudbreak.cloud.v4.CommonClusterManagerProperties;
 import com.sequenceiq.it.cloudbreak.dto.CloudbreakTestDto;
 import com.sequenceiq.it.cloudbreak.exception.TestFailException;
+import com.sequenceiq.it.cloudbreak.exception.TestMethodNameMissingException;
 import com.sequenceiq.it.cloudbreak.finder.Attribute;
 import com.sequenceiq.it.cloudbreak.finder.Capture;
 import com.sequenceiq.it.cloudbreak.finder.Finder;
@@ -58,6 +59,7 @@ import com.sequenceiq.it.cloudbreak.util.ResponseUtil;
 import com.sequenceiq.it.cloudbreak.util.wait.FlowUtil;
 import com.sequenceiq.it.cloudbreak.util.wait.service.ResourceAwait;
 import com.sequenceiq.it.cloudbreak.util.wait.service.instance.InstanceAwait;
+import com.sequenceiq.it.util.TagsUtil;
 
 import io.opentracing.Tracer;
 
@@ -144,6 +146,9 @@ public abstract class TestContext implements ApplicationContextAware {
 
     @Inject
     private CloudbreakActor cloudbreakActor;
+
+    @Inject
+    private TagsUtil tagsUtil;
 
     private boolean validated;
 
@@ -695,6 +700,10 @@ public abstract class TestContext implements ApplicationContextAware {
             Log.when(null, key + " initialization is failed: " + ResponseUtil.getErrorMessage(e));
             getExceptionMap().put(key, e);
         }
+
+        String testName = getTestMethodName().orElseThrow(TestMethodNameMissingException::new);
+        tagsUtil.addTestNameTag(cloudPlatform, bean, testName);
+
         return bean;
     }
 
@@ -1192,6 +1201,9 @@ public abstract class TestContext implements ApplicationContextAware {
             LOGGER.info("Cleanup skipped beacuse cleanupOnFail is false");
             return;
         }
+
+        getResourceNames().values().forEach(value -> tagsUtil.verifyTags(value, this));
+
         List<CloudbreakTestDto> testDtos = new ArrayList<>(getResourceNames().values());
         List<CloudbreakTestDto> orderedTestDtos = testDtos.stream().sorted(new CompareByOrder()).collect(Collectors.toList());
         for (CloudbreakTestDto testDto : orderedTestDtos) {

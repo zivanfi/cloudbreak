@@ -51,6 +51,15 @@ public class AzureVirtualMachineService {
         while (hasMissingVm(virtualMachines, privateInstanceIds) && virtualMachines.hasNextPage()) {
             virtualMachines.loadNextPage();
         }
+        if (hasNoVmInResourceGroup(virtualMachines)) {
+            for (String privateInstanceId : privateInstanceIds) {
+                VirtualMachine virtualMachineByResourceGroup = azureClient.getVirtualMachineByResourceGroup(resourceGroup, privateInstanceId);
+                virtualMachines.add(virtualMachineByResourceGroup);
+                if (virtualMachineByResourceGroup == null) {
+                    LOGGER.info("Can not found  vm: " + privateInstanceId);
+                }
+            }
+        }
         errorIfEmpty(virtualMachines);
         validateResponse(virtualMachines, privateInstanceIds);
         return collectVirtualMachinesByName(privateInstanceIds, virtualMachines);

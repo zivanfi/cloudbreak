@@ -6,6 +6,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
@@ -35,21 +36,17 @@ public class StackScalingService {
     @Inject
     private Clock clock;
 
-    public int updateRemovedResourcesState(Collection<String> instanceIds, InstanceGroup instanceGroup) throws TransactionService.TransactionExecutionException {
-        return transactionService.required(() -> {
-            int nodesRemoved = 0;
-            List<InstanceMetaData> notTerminatedInstanceMetadataSet = instanceMetaDataService.findAliveInstancesInInstanceGroup(instanceGroup.getId());
+    public void updateRemovedResourcesState(Collection<Long> privateIds, long stackId) throws TransactionService.TransactionExecutionException {
+        transactionService.required(() -> {
+            Set<InstanceMetaData> notTerminatedInstanceMetadataSet = instanceMetaDataService.getAllInstanceMetadataWithoutInstanceGroupByStackId(stackId);
             for (InstanceMetaData instanceMetaData : notTerminatedInstanceMetadataSet) {
-                if (instanceIds.contains(instanceMetaData.getInstanceId())) {
+                if (privateIds.contains(instanceMetaData.getPrivateId())) {
                     instanceMetaData.setTerminationDate(clock.getCurrentTimeMillis());
                     instanceMetaData.setInstanceStatus(InstanceStatus.TERMINATED);
-                    nodesRemoved++;
                 }
             }
             instanceMetaDataService.saveAll(notTerminatedInstanceMetadataSet);
-            int nodeCount = instanceGroup.getNodeCount() - nodesRemoved;
-            LOGGER.debug("Successfully terminated metadata of instances '{}' in stack.", instanceIds);
-            return nodeCount;
+            LOGGER.debug("Successfully terminated metadata of instances '{}' in stack.", privateIds);
         });
     }
 

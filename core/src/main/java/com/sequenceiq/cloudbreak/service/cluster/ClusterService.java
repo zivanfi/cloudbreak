@@ -213,19 +213,17 @@ public class ClusterService {
         return cluster;
     }
 
-    public void updateInstancesToRunning(Long clusterId, Map<String, List<String>> hostsPerHostGroup) {
+    public void updateInstancesToRunning(Long stackId, Map<String, String> hosts) {
         try {
             transactionService.required(() -> {
-                for (Entry<String, List<String>> hostGroupEntry : hostsPerHostGroup.entrySet()) {
-                    hostGroupService.getByClusterIdAndName(clusterId, hostGroupEntry.getKey()).ifPresent(hostGroup -> {
-                        hostGroup.getInstanceGroup().getUnattachedInstanceMetaDataSet()
-                                .forEach(instanceMetaData -> {
-                                    instanceMetaData.setInstanceStatus(SERVICES_RUNNING);
-                                    instanceMetaDataService.save(instanceMetaData);
-                                });
-                    });
+                List<InstanceMetaData> createdInstances =
+                        instanceMetaDataService.findNotTerminatedForStack(stackId).stream().filter(InstanceMetaData::isCreated).collect(Collectors.toList());
+                for (InstanceMetaData instanceMetaData : createdInstances) {
+                    if (hosts.containsKey(instanceMetaData.getDiscoveryFQDN())) {
+                        instanceMetaData.setInstanceStatus(SERVICES_RUNNING);
+                        instanceMetaDataService.save(instanceMetaData);
+                    }
                 }
-                return null;
             });
         } catch (TransactionExecutionException e) {
             throw new TransactionRuntimeExecutionException(e);

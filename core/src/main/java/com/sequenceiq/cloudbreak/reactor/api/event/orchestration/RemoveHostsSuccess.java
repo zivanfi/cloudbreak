@@ -5,24 +5,24 @@ import java.util.Set;
 import com.sequenceiq.cloudbreak.reactor.api.event.StackEvent;
 
 public class RemoveHostsSuccess extends StackEvent {
-    private String hostGroupName;
+    private final Set<String> hostGroups;
 
-    private Set<String> hostNames;
+    private final Set<String> hostNames;
 
-    public RemoveHostsSuccess(Long stackId, String hostGroupName, Set<String> hostNames) {
+    public RemoveHostsSuccess(Long stackId, Set<String> hostGroups, Set<String> hostNames) {
         super(stackId);
-        this.hostGroupName = hostGroupName;
+        this.hostGroups = hostGroups;
         this.hostNames = hostNames;
     }
 
-    public RemoveHostsSuccess(String selector, Long stackId, String hostGroupName, Set<String> hostNames) {
+    public RemoveHostsSuccess(String selector, Long stackId, Set<String> hostGroups, Set<String> hostNames) {
         super(selector, stackId);
-        this.hostGroupName = hostGroupName;
+        this.hostGroups = hostGroups;
         this.hostNames = hostNames;
     }
 
-    public String getHostGroupName() {
-        return hostGroupName;
+    public Set<String> getHostGroups() {
+        return hostGroups;
     }
 
     public Set<String> getHostNames() {

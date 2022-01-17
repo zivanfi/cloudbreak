@@ -34,14 +34,14 @@ public interface InstanceMetaDataRepository extends CrudRepository<InstanceMetaD
             "AND i.instanceStatus <> 'TERMINATED' " +
             "AND i.instanceStatus <> 'DELETED_ON_PROVIDER_SIDE' " +
             "AND i.instanceStatus <> 'DELETED_BY_PROVIDER'")
-    Set<InstanceMetaData> findNotTerminatedForStack(@Param("stackId") Long stackId);
+    Set<InstanceMetaData> findNotDeletedForStack(@Param("stackId") Long stackId);
 
     @Query("SELECT i FROM InstanceMetaData i " +
             "WHERE i.instanceGroup.stack.id= :stackId " +
             "AND i.instanceStatus <> 'TERMINATED' " +
             "AND i.instanceStatus <> 'DELETED_ON_PROVIDER_SIDE' " +
             "AND i.instanceStatus <> 'DELETED_BY_PROVIDER'")
-    Set<InstanceMetaData> findNotTerminatedForStackWithoutInstanceGroups(@Param("stackId") Long stackId);
+    Set<InstanceMetaData> findNotDeletedForStackWithoutInstanceGroups(@Param("stackId") Long stackId);
 
     @EntityGraph(value = "InstanceMetaData.instanceGroup", type = EntityGraphType.LOAD)
     @Query("SELECT i FROM InstanceMetaData i WHERE i.instanceGroup.stack.id= :stackId")

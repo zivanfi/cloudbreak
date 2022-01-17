@@ -11,15 +11,12 @@ import javax.inject.Inject;
 
 import org.springframework.stereotype.Component;
 
-import com.google.common.collect.Sets;
 import com.sequenceiq.cloudbreak.common.event.Selectable;
-import com.sequenceiq.cloudbreak.common.exception.NotFoundException;
 import com.sequenceiq.cloudbreak.common.type.ScalingType;
 import com.sequenceiq.cloudbreak.core.flow2.event.ClusterScaleTriggerEvent;
 import com.sequenceiq.cloudbreak.core.flow2.event.StackAndClusterUpscaleTriggerEvent;
 import com.sequenceiq.cloudbreak.core.flow2.event.StackScaleTriggerEvent;
 import com.sequenceiq.cloudbreak.core.flow2.event.StackSyncTriggerEvent;
-import com.sequenceiq.cloudbreak.domain.stack.cluster.host.HostGroup;
 import com.sequenceiq.cloudbreak.domain.view.ClusterView;
 import com.sequenceiq.cloudbreak.domain.view.StackView;
 import com.sequenceiq.cloudbreak.service.hostgroup.HostGroupService;
@@ -63,14 +60,12 @@ public class UpscaleFlowEventChainFactory implements FlowEventChainFactory<Stack
     private void addClusterScaleTriggerEventIfNeeded(StackAndClusterUpscaleTriggerEvent event, StackView stackView, ClusterView clusterView,
             Queue<Selectable> flowEventChain) {
         if (ScalingType.isClusterUpScale(event.getScalingType()) && clusterView != null) {
-            HostGroup hostGroup = hostGroupService.getByClusterIdAndName(clusterView.getId(), event.getInstanceGroup())
-                    .orElseThrow(NotFoundException.notFound("hostgroup", event.getInstanceGroup()));
             flowEventChain.add(
                     new ClusterScaleTriggerEvent(CLUSTER_UPSCALE_TRIGGER_EVENT.event(),
                             stackView.getId(),
-                            hostGroup.getName(),
-                            event.getAdjustment(),
-                            Sets.newHashSet(event.getHostNames()),
+                            event.getHostGroupWithAdjustment(),
+                            event.getHostGroupWithPrivateIds(),
+                            event.getHostGroupWithHostnames(),
                             event.isSingleMasterGateway(),
                             event.isKerberosSecured(),
                             event.isSingleNodeCluster(),
@@ -85,9 +80,9 @@ public class UpscaleFlowEventChainFactory implements FlowEventChainFactory<Stack
         StackScaleTriggerEvent stackScaleTriggerEvent = new StackScaleTriggerEvent(
                 ADD_INSTANCES_EVENT.event(),
                 event.getResourceId(),
-                event.getInstanceGroup(),
-                event.getAdjustment(),
-                event.getHostNames(),
+                event.getHostGroupWithAdjustment(),
+                event.getHostGroupWithPrivateIds(),
+                event.getHostGroupWithHostnames(),
                 event.getNetworkScaleDetails(),
                 event.getAdjustmentTypeWithThreshold(),
                 event.getTriggeredStackVariant());

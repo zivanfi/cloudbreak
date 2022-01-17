@@ -3,6 +3,7 @@ package com.sequenceiq.cloudbreak.core.flow2.stack.downscale;
 import static java.util.stream.Collectors.toMap;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -30,12 +31,12 @@ import com.sequenceiq.cloudbreak.core.flow2.event.StackDownscaleTriggerEvent;
 import com.sequenceiq.cloudbreak.core.flow2.stack.AbstractStackFailureAction;
 import com.sequenceiq.cloudbreak.core.flow2.stack.StackFailureContext;
 import com.sequenceiq.cloudbreak.domain.stack.Stack;
-import com.sequenceiq.cloudbreak.domain.stack.instance.InstanceGroup;
 import com.sequenceiq.cloudbreak.domain.stack.instance.InstanceMetaData;
 import com.sequenceiq.cloudbreak.reactor.api.event.StackEvent;
 import com.sequenceiq.cloudbreak.reactor.api.event.StackFailureEvent;
 import com.sequenceiq.cloudbreak.service.environment.EnvironmentClientService;
 import com.sequenceiq.cloudbreak.service.publicendpoint.ClusterPublicEndpointManagementService;
+import com.sequenceiq.cloudbreak.service.stack.InstanceMetaDataService;
 import com.sequenceiq.environment.api.v1.environment.model.response.DetailedEnvironmentResponse;
 
 @Configuration
@@ -61,6 +62,9 @@ public class StackDownscaleActions {
     @Inject
     private EnvironmentClientService environmentClientService;
 
+    @Inject
+    private InstanceMetaDataService instanceMetaDataService;
+
     @Bean(name = "DOWNSCALE_COLLECT_RESOURCES_STATE")
     public Action<?, ?> stackDownscaleCollectResourcesAction() {
         return new AbstractStackDownscaleAction<>(StackDownscaleTriggerEvent.class) {
@@ -74,10 +78,9 @@ public class StackDownscaleActions {
                         .collect(Collectors.toList());
                 variables.put(RESOURCES, resources);
                 List<CloudInstance> instances = new ArrayList<>();
-                InstanceGroup group = stack.getInstanceGroupByInstanceGroupName(context.getInstanceGroupName());
-                final Set<InstanceMetaData> candidatesInstanceMetadata = group.getNotTerminatedInstanceMetaDataSet()
+                final Set<InstanceMetaData> candidatesInstanceMetadata = stack.getNotTerminatedInstanceMetaDataSet()
                         .stream()
-                        .filter(im -> context.getInstanceIds().contains(im.getInstanceId()))
+                        .filter(im -> context.getHostGroupWithPrivateIds().values().stream().anyMatch(privateIds -> privateIds.contains(im.getPrivateId())))
                         .collect(Collectors.toSet());
 
                 DetailedEnvironmentResponse environment = environmentClientService.getByCrnAsInternal(stack.getEnvironmentCrn());
@@ -116,7 +119,8 @@ public class StackDownscaleActions {
             @Override
             protected void doExecute(StackScalingFlowContext context, DownscaleStackResult payload, Map<Object, Object> variables)
                     throws TransactionExecutionException {
-                stackDownscaleService.finishStackDownscale(context, getInstanceGroupName(variables), getInstanceIds(variables));
+                List<Long> privateIds = context.getHostGroupWithPrivateIds().values().stream().flatMap(Collection::stream).collect(Collectors.toList());
+                stackDownscaleService.finishStackDownscale(context, privateIds);
                 sendEvent(context);
             }
 

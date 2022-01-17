@@ -4,7 +4,6 @@ import static com.sequenceiq.cloudbreak.cloud.model.AvailabilityZone.availabilit
 import static com.sequenceiq.cloudbreak.cloud.model.Location.location;
 import static com.sequenceiq.cloudbreak.cloud.model.Region.region;
 
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
@@ -23,6 +22,7 @@ import com.sequenceiq.cloudbreak.common.event.Payload;
 import com.sequenceiq.cloudbreak.converter.spi.StackToCloudStackConverter;
 import com.sequenceiq.cloudbreak.core.flow2.AbstractStackAction;
 import com.sequenceiq.cloudbreak.core.flow2.dto.NetworkScaleDetails;
+import com.sequenceiq.cloudbreak.core.flow2.event.StackScaleTriggerEvent;
 import com.sequenceiq.cloudbreak.core.flow2.stack.downscale.StackScalingFlowContext;
 import com.sequenceiq.cloudbreak.domain.stack.Stack;
 import com.sequenceiq.cloudbreak.logger.MDCBuilder;
@@ -34,13 +34,12 @@ import com.sequenceiq.common.api.adjustment.AdjustmentTypeWithThreshold;
 import com.sequenceiq.flow.core.FlowParameters;
 
 abstract class AbstractStackUpscaleAction<P extends Payload> extends AbstractStackAction<StackUpscaleState, StackUpscaleEvent, StackScalingFlowContext, P> {
-    static final String INSTANCEGROUPNAME = "INSTANCEGROUPNAME";
-
-    static final String ADJUSTMENT = "ADJUSTMENT";
 
     static final String UPSCALE_CANDIDATE_ADDRESSES = "UPSCALE_CANDIDATE_ADDRESSES";
 
-    static final String HOSTNAMES = "HOSTNAMES";
+    static final String HOST_GROUP_WITH_ADJUSTMENT = "HOST_GROUP_WITH_ADJUSTMENT";
+
+    static final String HOST_GROUP_WITH_HOSTNAMES = "HOST_GROUP_WITH_HOSTNAMES";
 
     static final String REPAIR = "REPAIR";
 
@@ -86,26 +85,35 @@ abstract class AbstractStackUpscaleAction<P extends Payload> extends AbstractSta
                 .build();
         CloudCredential cloudCredential = stackUtil.getCloudCredential(stack);
         CloudStack cloudStack = cloudStackConverter.convert(stack);
-        return new StackScalingFlowContext(flowParameters, stack, cloudContext, cloudCredential, cloudStack, getInstanceGroupName(variables),
-                Collections.emptySet(), getAdjustment(variables), getHostNames(variables), isRepair(variables), getStackNetworkScaleDetails(variables),
-                getAdjustmentWithThreshold(variables));
+        if (payload instanceof StackScaleTriggerEvent) {
+            StackScaleTriggerEvent stackScaleTriggerEvent = (StackScaleTriggerEvent) payload;
+            boolean repair = stackScaleTriggerEvent.isRepair();
+            Map<String, Integer> hostGroupWithAdjustment = stackScaleTriggerEvent.getHostGroupWithAdjustment();
+            Map<String, Set<Long>> hostGroupWithPrivateIds = stackScaleTriggerEvent.getHostGroupWithPrivateIds();
+            Map<String, Set<String>> hostgroupWithHostnames = stackScaleTriggerEvent.getHostGroupWithHostnames();
+            NetworkScaleDetails networkScaleDetails = stackScaleTriggerEvent.getNetworkScaleDetails();
+            AdjustmentTypeWithThreshold adjustmentTypeWithThreshold = stackScaleTriggerEvent.getAdjustmentTypeWithThreshold();
+            variables.put(REPAIR, repair);
+            variables.put(HOST_GROUP_WITH_ADJUSTMENT, hostGroupWithAdjustment);
+            variables.put(HOST_GROUP_WITH_HOSTNAMES, hostgroupWithHostnames);
+            variables.put(NETWORK_SCALE_DETAILS, networkScaleDetails);
+            variables.put(ADJUSTMENT_WITH_THRESHOLD, adjustmentTypeWithThreshold);
+            return new StackScalingFlowContext(flowParameters, stack, cloudContext, cloudCredential, cloudStack, hostGroupWithAdjustment,
+                    hostGroupWithPrivateIds, hostgroupWithHostnames, repair, networkScaleDetails, adjustmentTypeWithThreshold);
+        } else {
+            Map<String, Integer> hostGroupWithAdjustment = getHostGroupWithAdjustment(variables);
+            Map<String, Set<String>> hostgroupWithHostnames = getHostGroupWithHostnames(variables);
+            NetworkScaleDetails stackNetworkScaleDetails = getStackNetworkScaleDetails(variables);
+            AdjustmentTypeWithThreshold adjustmentWithThreshold = getAdjustmentWithThreshold(variables);
+            return new StackScalingFlowContext(flowParameters, stack, cloudContext, cloudCredential, cloudStack,
+                    hostGroupWithAdjustment, null, hostgroupWithHostnames, isRepair(variables), stackNetworkScaleDetails,
+                    adjustmentWithThreshold);
+        }
     }
 
     @Override
     protected Object getFailurePayload(P payload, Optional<StackScalingFlowContext> flowContext, Exception ex) {
         return new StackFailureEvent(payload.getResourceId(), ex);
-    }
-
-    private String getInstanceGroupName(Map<Object, Object> variables) {
-        return (String) variables.get(INSTANCEGROUPNAME);
-    }
-
-    private Integer getAdjustment(Map<Object, Object> variables) {
-        return (Integer) variables.get(ADJUSTMENT);
-    }
-
-    private boolean isRepair(Map<Object, Object> variables) {
-        return variables.get(REPAIR) != null && (Boolean) variables.get(REPAIR);
     }
 
     private String getTriggeredVariantOrStackVariant(Map<Object, Object> variables, Stack stack) {
@@ -116,8 +124,16 @@ abstract class AbstractStackUpscaleAction<P extends Payload> extends AbstractSta
         return variant;
     }
 
-    private Set<String> getHostNames(Map<Object, Object> variables) {
-        return (Set<String>) variables.get(HOSTNAMES);
+    protected boolean isRepair(Map<Object, Object> variables) {
+        return variables.get(REPAIR) != null && (Boolean) variables.get(REPAIR);
+    }
+
+    protected Map<String, Integer> getHostGroupWithAdjustment(Map<Object, Object> variables) {
+        return (Map<String, Integer>) variables.get(HOST_GROUP_WITH_ADJUSTMENT);
+    }
+
+    protected Map<String, Set<String>> getHostGroupWithHostnames(Map<Object, Object> variables) {
+        return (Map<String, Set<String>>) variables.get(HOST_GROUP_WITH_HOSTNAMES);
     }
 
     private NetworkScaleDetails getStackNetworkScaleDetails(Map<Object, Object> variables) {

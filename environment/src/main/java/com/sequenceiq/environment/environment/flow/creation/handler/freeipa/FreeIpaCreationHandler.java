@@ -275,6 +275,9 @@ public class FreeIpaCreationHandler extends EventSenderAwareHandler<EnvironmentD
         if (multiAzRequired && CloudPlatform.AWS.name().equals(environment.getCloudPlatform())) {
             createFreeIpaRequest.setVariant(AwsConstants.AwsVariant.AWS_NATIVE_VARIANT.variant().value());
         }
+        if (environment.getCredentialView().getGovCloud() && CloudPlatform.AWS.name().equals(environment.getCloudPlatform())) {
+            createFreeIpaRequest.setVariant(AwsConstants.AwsVariant.AWS_GOV_VARIANT.variant().value());
+        }
     }
 
     private void setTags(EnvironmentDto environment, CreateFreeIpaRequest createFreeIpaRequest) {

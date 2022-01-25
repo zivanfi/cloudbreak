@@ -1,5 +1,6 @@
 package com.sequenceiq.cloudbreak.repository;
 
+import java.util.Optional;
 import java.util.Set;
 
 import javax.transaction.Transactional;
@@ -35,4 +36,8 @@ public interface ClusterComponentRepository extends CrudRepository<ClusterCompon
 
     @EntityGraph(value = "ClusterComponent.cluster.rdsConfig", type = EntityGraphType.LOAD)
     Set<ClusterComponent> findByComponentType(ComponentType componentType);
+
+    @Query(value = "SELECT cv.attributes\\:\\:json->>?1 FROM clustercomponent cv WHERE cv.cluster_id = ?2 AND cv.componenttype = ?3 AND cv.name = ?4",
+            nativeQuery = true)
+    Optional<String> findComponentAttributeValueByClusterIdComponentTypeNameKey(String key, Long clusterId, String componentType, String name);
 }

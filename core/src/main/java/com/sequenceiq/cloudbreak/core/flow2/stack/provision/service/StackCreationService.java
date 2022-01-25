@@ -59,6 +59,7 @@ import com.sequenceiq.cloudbreak.core.flow2.stack.CloudbreakFlowMessageService;
 import com.sequenceiq.cloudbreak.core.flow2.stack.StackContext;
 import com.sequenceiq.cloudbreak.domain.SecurityConfig;
 import com.sequenceiq.cloudbreak.domain.Template;
+import com.sequenceiq.cloudbreak.domain.VolumeUsageType;
 import com.sequenceiq.cloudbreak.domain.stack.Stack;
 import com.sequenceiq.cloudbreak.domain.stack.instance.InstanceGroup;
 import com.sequenceiq.cloudbreak.domain.stack.instance.InstanceMetaData;
@@ -78,6 +79,7 @@ import com.sequenceiq.cloudbreak.service.stack.connector.adapter.ServiceProvider
 import com.sequenceiq.cloudbreak.service.stack.flow.MetadataSetupService;
 import com.sequenceiq.cloudbreak.service.stack.flow.TlsSetupService;
 import com.sequenceiq.cloudbreak.service.template.TemplateService;
+import com.sequenceiq.common.api.type.InstanceGroupType;
 import com.sequenceiq.common.model.AwsDiskType;
 import com.sequenceiq.flow.reactor.ErrorHandlerAwareReactorEventFactory;
 
@@ -289,10 +291,8 @@ public class StackCreationService {
         for (InstanceGroup ig : stack.getInstanceGroups()) {
             Template template = ig.getTemplate();
             if (template != null) {
-                boolean ephemeralVolumesOnly = template.getVolumeTemplates().stream()
-                        .allMatch(volumeTemplate -> AwsDiskType.Ephemeral.value().equalsIgnoreCase(volumeTemplate.getVolumeType()));
                 Integer instanceStorageCount = instanceStoreMetadata.mapInstanceTypeToInstanceStoreCountNullHandled(template.getInstanceType());
-                if (ephemeralVolumesOnly) {
+                if (isInstanceGroupEphemeralVolumesOnly(ig)) {
                     LOGGER.debug("Instance storage was already requested. Setting temporary storage in template to: {}. " +
                             "Group name: {}, Template id: {}, instance type: {}",
                             TemporaryStorage.EPHEMERAL_VOLUMES_ONLY.name(), ig.getGroupName(), template.getId(), template.getInstanceType());
@@ -309,6 +309,17 @@ public class StackCreationService {
                 templateService.savePure(template);
             }
         }
+    }
+
+    private boolean isInstanceGroupEphemeralVolumesOnly (InstanceGroup ig) {
+        long ephemeralVolumeCount = ig.getTemplate().getVolumeTemplates().stream()
+                .filter(volumeTemplate -> AwsDiskType.Ephemeral.value().equalsIgnoreCase(volumeTemplate.getVolumeType())).count();
+        long embeddedDbVolumeCount = ig.getTemplate().getVolumeTemplates().stream()
+                .filter(volumeTemplate -> VolumeUsageType.DATABASE.equals(volumeTemplate.getUsageType())).count();
+        return ephemeralVolumeCount == ig.getTemplate().getVolumeTemplates().size() ||
+                (InstanceGroupType.isGateway(ig.getInstanceGroupType()) &&
+                        ephemeralVolumeCount > 0 &&
+                        ephemeralVolumeCount + embeddedDbVolumeCount == ig.getTemplate().getVolumeTemplates().size());
     }
 
     private void sendNotificationIfNecessary(CheckImageResult result, Stack stack) {

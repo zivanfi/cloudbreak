@@ -37,6 +37,8 @@ public class ClusterComponentConfigProvider {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ClusterComponentConfigProvider.class);
 
+    private static final String CB_VERSION_KEY = "CB_VERSION";
+
     @Inject
     private ClusterComponentRepository componentRepository;
 
@@ -95,6 +97,11 @@ public class ClusterComponentConfigProvider {
             }
         }
         return result;
+    }
+
+    public String getSaltStateComponentCbVersion(Long clusterId) {
+        return componentRepository.findComponentAttributeValueByClusterIdComponentTypeNameKey(
+                CB_VERSION_KEY, clusterId, ComponentType.SALT_STATE.name(), ComponentType.SALT_STATE.name()).orElse(null);
     }
 
     public <T> T getComponent(Collection<ClusterComponent> components, Class<T> clazz, ComponentType componentType) {

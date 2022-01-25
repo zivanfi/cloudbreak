@@ -23,6 +23,7 @@ import javax.inject.Inject;
 import org.apache.commons.codec.binary.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import com.sequenceiq.cloudbreak.cloud.model.CloudInstance;
@@ -75,6 +76,11 @@ public class ClusterBootstrapper {
     private static final int POLL_INTERVAL = 5000;
 
     private static final int MAX_POLLING_ATTEMPTS = 500;
+
+    private static final String CB_VERSION_KEY = "CB_VERSION";
+
+    @Value("${info.app.version:}")
+    private String cbVersion;
 
     @Inject
     private StackService stackService;
@@ -217,7 +223,8 @@ public class ClusterBootstrapper {
     private ClusterComponent createSaltComponent(Stack stack, byte[] stateConfigZip) {
         ClusterComponent saltComponent;
         saltComponent = new ClusterComponent(ComponentType.SALT_STATE,
-                new Json(singletonMap(ComponentType.SALT_STATE.name(), Base64.encodeBase64String(stateConfigZip))), stack.getCluster());
+                new Json(Map.of(ComponentType.SALT_STATE.name(), Base64.encodeBase64String(stateConfigZip),
+                        CB_VERSION_KEY, cbVersion)), stack.getCluster());
         return saltComponent;
     }
 
@@ -237,7 +244,8 @@ public class ClusterBootstrapper {
             saltComponent = createSaltComponent(stack, stateConfigZip);
         } else {
             LOGGER.debug("Overwrite existing salt component attributes");
-            saltComponent.setAttributes(new Json(singletonMap(ComponentType.SALT_STATE.name(), Base64.encodeBase64String(stateConfigZip))));
+            saltComponent.setAttributes(new Json(Map.of(ComponentType.SALT_STATE.name(), Base64.encodeBase64String(stateConfigZip),
+                    CB_VERSION_KEY, cbVersion)));
         }
         return clusterComponentProvider.store(saltComponent);
     }

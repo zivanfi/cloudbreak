@@ -818,6 +818,20 @@ cb:
         ZEPPELIN: 7.2.7,
         ZOOKEEPER: 7.2.7
 
+  stopRestriction:
+    restrictedCloudPlatform: AWS
+    ephemeralCachingMinVersion: 2.48.0
+    ephemeralOnlyMinVersion: 2.52.0
+    permittedServiceRoleGroups:
+      - name: dataEngineering
+        serviceRoles:
+          - service: YARN
+            role: NODEMANAGER
+            required: true
+        roles:
+          - role: GATEWAY
+            required: false
+
 cluster:
   monitoring:
     enabled: true

@@ -1,47 +1,90 @@
 package com.sequenceiq.datalake.service.resize.recovery;
 
-import org.springframework.stereotype.Service;
+import javax.inject.Inject;
 
-import com.sequenceiq.cloudbreak.common.exception.BadRequestException;
+import org.apache.commons.lang3.NotImplementedException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
+import com.sequenceiq.cloudbreak.api.endpoint.v4.stacks.response.recovery.RecoveryStatus;
+import com.sequenceiq.cloudbreak.auth.ThreadBasedUserCrnProvider;
+import com.sequenceiq.cloudbreak.auth.altus.EntitlementService;
+import com.sequenceiq.datalake.entity.DatalakeStatusEnum;
+import com.sequenceiq.datalake.entity.SdxCluster;
+import com.sequenceiq.datalake.entity.SdxStatusEntity;
+import com.sequenceiq.datalake.flow.SdxReactorFlowManager;
+import com.sequenceiq.datalake.flow.chain.DatalakeResizeFlowEventChainFactory;
+import com.sequenceiq.datalake.service.recovery.RecoveryService;
+import com.sequenceiq.datalake.service.sdx.SdxService;
+import com.sequenceiq.datalake.service.sdx.status.SdxStatusService;
+import com.sequenceiq.flow.core.Flow2Handler;
+import com.sequenceiq.flow.domain.FlowLog;
+import com.sequenceiq.flow.service.flowlog.FlowChainLogService;
 import com.sequenceiq.sdx.api.model.SdxRecoverableResponse;
+import com.sequenceiq.sdx.api.model.SdxRecoveryRequest;
 import com.sequenceiq.sdx.api.model.SdxRecoveryResponse;
 
-@Service
+@Component
 /**
  * Provides entrypoint for recovery of failed SDX resize.
  *
  * The main entry point is {@code triggerRecovery}, which starts a cloudbreak Flow to recover the Data Lake.
- * To ensure a Resize recovery is appropriate, use one of {@code canRecover} or {@code validateRecovery}.
+ * ensure a Resize recovery is appropriate using {@code canRecover}
+ *
  */
-public class ResizeRecoveryService {
+public class ResizeRecoveryService implements RecoveryService {
 
-    /**
-     * Determines if it's possible to run a <em>Resize</em> recovery, returning a simple boolean indicator
-     * @return true if resize recovery is possible.
-     */
-    public boolean canRecover() {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ResizeRecoveryService.class);
+
+    @Inject
+    private EntitlementService entitlementService;
+
+    @Inject
+    private SdxService sdxService;
+
+    @Inject
+    private SdxStatusService sdxStatusService;
+
+    @Inject
+    private SdxReactorFlowManager sdxReactorFlowManager;
+
+    @Inject
+    private Flow2Handler flow2Handler;
+
+    @Inject
+    private FlowChainLogService flowChainLogService;
+
+    public boolean canRecover(SdxCluster sdxCluster) {
+        FlowLog flowLog = flow2Handler.getFirstStateLogfromLatestFlow(sdxCluster.getId());
+        if (entitlementService.isDatalakeResizeRecoveryEnabled(ThreadBasedUserCrnProvider.getAccountId())) {
+            if (DatalakeResizeFlowEventChainFactory.class.getSimpleName().equals(flowChainLogService.getFlowChainType(flowLog.getFlowChainId()))) {
+                SdxStatusEntity actualStatusForSdx = sdxStatusService.getActualStatusForSdx(sdxCluster);
+                if (DatalakeStatusEnum.STOP_FAILED.equals(actualStatusForSdx.getStatus())) {
+                    return true;
+                }
+            }
+        }
         return false;
     }
 
-    /**
-     * Determines if it's possible to run a <em>Resize</em> recovery, returning a detailed validation message.
-     *
-     * This is distinguished from {@code canRecover} by including a detailed validation message, usable as a web response.
-     * @return detailed validation message, as a web response
-     */
-    public SdxRecoverableResponse validateRecovery() {
-        // todo: implement me
-        throw new BadRequestException("SDX Resize Recovery is not yet implemented");
+    public SdxRecoverableResponse validateRecovery(SdxCluster sdxCluster) {
+        SdxStatusEntity actualStatusForSdx = sdxStatusService.getActualStatusForSdx(sdxCluster);
+        if (DatalakeStatusEnum.STOP_FAILED.equals(actualStatusForSdx.getStatus())) {
+            return new SdxRecoverableResponse("Resize can be recovered from a failed stop", RecoveryStatus.RECOVERABLE);
+        }
+        return new SdxRecoverableResponse("Resize can not be recovered from this point", RecoveryStatus.NON_RECOVERABLE);
     }
 
-    /**
-     * Checks if recovery is possible, then performs the resize recovery if appropriate.
-     * @return a response containing information for the triggered recovery Flow.
-     */
-    public SdxRecoveryResponse triggerRecovery() {
-        validateRecovery();
-        // todo: implement me
-        return null;
+    public SdxRecoveryResponse triggerRecovery(SdxCluster sdxCluster, SdxRecoveryRequest sdxRecoveryRequest) {
+        SdxStatusEntity actualStatusForSdx = sdxStatusService.getActualStatusForSdx(sdxCluster);
+        if (entitlementService.isDatalakeResizeRecoveryEnabled(ThreadBasedUserCrnProvider.getAccountId())) {
+            if (DatalakeStatusEnum.STOP_FAILED.equals(actualStatusForSdx.getStatus())) {
+                return new SdxRecoveryResponse(sdxReactorFlowManager.triggerSdxStartFlow(sdxCluster));
+            }
+        }
+        throw new NotImplementedException("Cluster is currently in an unrecoverable state");
+
     }
 
 }

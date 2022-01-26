@@ -1,8 +1,5 @@
 package com.sequenceiq.cloudbreak.cm;
 
-import static com.sequenceiq.cloudbreak.polling.PollingResult.isExited;
-import static com.sequenceiq.cloudbreak.polling.PollingResult.isTimeout;
-
 import java.math.BigDecimal;
 
 import javax.annotation.PostConstruct;
@@ -85,9 +82,9 @@ public class ClouderaManagerDiagnosticsService implements ClusterDiagnosticsServ
             preUpdatePhoneHomeConfig(parameters.getDestination(), resourceApi, globalPhoneHomeConfig);
             ApiCommand collectDiagnostics = resourceApi.collectDiagnosticDataCommand(convertToCollectDiagnosticDataArguments(parameters));
             PollingResult pollingResult = clouderaManagerPollingServiceProvider.startPollingCollectDiagnostics(stack, client, collectDiagnostics.getId());
-            if (isExited(pollingResult)) {
+            if (pollingResult.isExited()) {
                 throw new CancellationException("Cluster was terminated while waiting for command API to be available for diagnostics collections");
-            } else if (isTimeout(pollingResult)) {
+            } else if (pollingResult.isTimeout()) {
                 throw new CloudbreakException("Timeout during waiting for command API to be available (diagnostics collections).");
             }
             postUpdatePhoneHomeConfig(parameters.getDestination(), resourceApi, globalPhoneHomeConfig);

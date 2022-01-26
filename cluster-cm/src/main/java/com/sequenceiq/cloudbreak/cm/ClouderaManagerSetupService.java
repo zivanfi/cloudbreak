@@ -4,8 +4,6 @@ import static com.sequenceiq.cloudbreak.cmtemplate.CMRepositoryVersionUtil.CLOUD
 import static com.sequenceiq.cloudbreak.cmtemplate.CMRepositoryVersionUtil.CLOUDERAMANAGER_VERSION_7_2_0;
 import static com.sequenceiq.cloudbreak.cmtemplate.CMRepositoryVersionUtil.CLOUDERAMANAGER_VERSION_7_6_0;
 import static com.sequenceiq.cloudbreak.cmtemplate.CMRepositoryVersionUtil.isVersionNewerOrEqualThanLimited;
-import static com.sequenceiq.cloudbreak.polling.PollingResult.isExited;
-import static com.sequenceiq.cloudbreak.polling.PollingResult.isSuccess;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -162,9 +160,9 @@ public class ClouderaManagerSetupService implements ClusterSetupService {
     public void waitForServer(boolean defaultClusterManagerAuth) throws CloudbreakException, ClusterClientInitException {
         ApiClient client = defaultClusterManagerAuth ? createApiClient() : apiClient;
         PollingResult pollingResult = clouderaManagerPollingServiceProvider.startPollingCmStartup(stack, client);
-        if (isSuccess(pollingResult)) {
+        if (pollingResult.isSuccess()) {
             LOGGER.debug("Cloudera Manager server has successfully started! Polling result: {}", pollingResult);
-        } else if (isExited(pollingResult)) {
+        } else if (pollingResult.isExited()) {
             throw new CancellationException("Polling of Cloudera Manager server start has been cancelled.");
         } else {
             LOGGER.debug("Could not start Cloudera Manager. polling result: {}", pollingResult);

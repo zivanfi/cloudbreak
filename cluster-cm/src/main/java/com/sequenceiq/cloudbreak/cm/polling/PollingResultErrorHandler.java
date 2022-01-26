@@ -1,8 +1,5 @@
 package com.sequenceiq.cloudbreak.cm.polling;
 
-import static com.sequenceiq.cloudbreak.polling.PollingResult.isExited;
-import static com.sequenceiq.cloudbreak.polling.PollingResult.isTimeout;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -18,9 +15,9 @@ public class PollingResultErrorHandler {
 
     public void handlePollingResult(PollingResult pollingResult, String cancellationMessage, String timeoutMessage) throws CloudbreakException {
         LOGGER.info("Poller finished with state: {}", pollingResult);
-        if (isExited(pollingResult)) {
+        if (pollingResult.isExited()) {
             throw new CancellationException(cancellationMessage);
-        } else if (isTimeout(pollingResult)) {
+        } else if (pollingResult.isTimeout()) {
             throw new CloudbreakException(timeoutMessage);
         }
     }

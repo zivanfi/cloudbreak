@@ -1,7 +1,5 @@
 package com.sequenceiq.cloudbreak.cm;
 
-import static com.sequenceiq.cloudbreak.polling.PollingResult.isExited;
-import static com.sequenceiq.cloudbreak.polling.PollingResult.isTimeout;
 import static java.util.stream.Collectors.toMap;
 
 import java.util.Map;
@@ -125,9 +123,9 @@ class ClouderaManagerParcelDecommissionService {
         Multimap<String, String> pollableParcels = filterForPollableParcels(parcels, undistributeStatus);
         PollingResult pollingResult = clouderaManagerPollingServiceProvider.startPollingCmParcelStatus(stack, apiClient, pollableParcels,
                 ParcelStatus.DOWNLOADED);
-        if (isExited(pollingResult)) {
+        if (pollingResult.isExited()) {
             throw new CancellationException("Cluster was terminated while waiting for parcels undistribution");
-        } else if (isTimeout(pollingResult)) {
+        } else if (pollingResult.isTimeout()) {
             throw new ClouderaManagerOperationFailedException("Timeout while Cloudera Manager undistribute parcels.");
         }
         return undistributeStatus;
@@ -159,9 +157,9 @@ class ClouderaManagerParcelDecommissionService {
                 .reduce(new ParcelOperationStatus(), ParcelOperationStatus::merge);
         Multimap<String, String> pollableParcels = filterForPollableParcels(parcels, removalStatus);
         PollingResult pollingResult = clouderaManagerPollingServiceProvider.startPollingCmParcelDelete(stack, apiClient, pollableParcels);
-        if (isExited(pollingResult)) {
+        if (pollingResult.isExited()) {
             throw new CancellationException("Cluster was terminated while waiting for parcels deletion");
-        } else if (isTimeout(pollingResult)) {
+        } else if (pollingResult.isTimeout()) {
             throw new ClouderaManagerOperationFailedException("Timeout while Cloudera Manager deletes parcels.");
         }
         return removalStatus;

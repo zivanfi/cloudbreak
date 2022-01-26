@@ -2,6 +2,7 @@ package com.sequenceiq.cloudbreak.cm;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -110,6 +111,9 @@ public class ClouderaManagerParcelDecommissionServiceTest {
         when(parcelsResourceApi.readParcels(STACK_NAME, "summary")).thenReturn(parcelList);
         Stack stack = mock(Stack.class);
         when(stack.getName()).thenReturn(STACK_NAME);
+        when(clouderaManagerPollingServiceProvider
+                .startPollingCmParcelStatus(eq(stack), eq(apiClient), any(), any()))
+                .thenReturn(PollingResult.SUCCESS);
         // WHEN
         ParcelOperationStatus operationStatus = underTest.undistributeUnusedParcels(apiClient, parcelsResourceApi, parcelResourceApi, stack, usedComponents,
                 productsFromImage);
@@ -134,6 +138,9 @@ public class ClouderaManagerParcelDecommissionServiceTest {
         when(parcelResourceApi.startRemovalOfDistributionCommand(STACK_NAME, "product3", "version3")).thenThrow(new ApiException());
         Stack stack = mock(Stack.class);
         when(stack.getName()).thenReturn(STACK_NAME);
+        when(clouderaManagerPollingServiceProvider
+                .startPollingCmParcelStatus(eq(stack), eq(apiClient), any(), any()))
+                .thenReturn(PollingResult.SUCCESS);
         // WHEN
         ParcelOperationStatus operationStatus = underTest.undistributeUnusedParcels(apiClient, parcelsResourceApi, parcelResourceApi, stack, usedComponents,
                 productsFromImage);
@@ -157,6 +164,9 @@ public class ClouderaManagerParcelDecommissionServiceTest {
         when(parcelsResourceApi.readParcels(STACK_NAME, "summary")).thenReturn(parcelList);
         Stack stack = mock(Stack.class);
         when(stack.getName()).thenReturn(STACK_NAME);
+        when(clouderaManagerPollingServiceProvider
+                .startPollingCmParcelDelete(eq(stack), eq(apiClient), any()))
+                .thenReturn(PollingResult.SUCCESS);
         // WHEN
         ParcelOperationStatus operationStatus = underTest.removeUnusedParcels(apiClient, parcelsResourceApi, parcelResourceApi, stack, usedComponents,
                 productsFromImage);
@@ -181,6 +191,9 @@ public class ClouderaManagerParcelDecommissionServiceTest {
         Stack stack = mock(Stack.class);
         when(stack.getName()).thenReturn(STACK_NAME);
         when(parcelResourceApi.removeDownloadCommand(STACK_NAME, "product3", "version3")).thenThrow(new ApiException());
+        when(clouderaManagerPollingServiceProvider
+                .startPollingCmParcelDelete(eq(stack), eq(apiClient), any()))
+                .thenReturn(PollingResult.SUCCESS);
         // WHEN
         ParcelOperationStatus operationStatus = underTest.removeUnusedParcels(apiClient, parcelsResourceApi, parcelResourceApi, stack, usedComponents,
                 productsFromImage);

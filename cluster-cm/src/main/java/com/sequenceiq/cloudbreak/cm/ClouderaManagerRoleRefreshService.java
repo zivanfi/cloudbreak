@@ -1,8 +1,5 @@
 package com.sequenceiq.cloudbreak.cm;
 
-import static com.sequenceiq.cloudbreak.polling.PollingResult.isExited;
-import static com.sequenceiq.cloudbreak.polling.PollingResult.isTimeout;
-
 import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -56,9 +53,9 @@ class ClouderaManagerRoleRefreshService {
         } catch (ClouderaManagerOperationFailedException e) {
             LOGGER.warn("Ignored failed refresh command. Upscale will continue.", e);
         }
-        if (isExited(pollingResult)) {
+        if (pollingResult.isExited()) {
             throw new CancellationException("Cluster was terminated while waiting for cluster refresh");
-        } else if (isTimeout(pollingResult)) {
+        } else if (pollingResult.isTimeout()) {
             throw new CloudbreakException("Timeout while Cloudera Manager tried to refresh the cluster..");
         }
     }

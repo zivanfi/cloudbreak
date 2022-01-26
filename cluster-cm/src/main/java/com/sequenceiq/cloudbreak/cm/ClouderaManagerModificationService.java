@@ -8,7 +8,6 @@ import static com.sequenceiq.cloudbreak.event.ResourceEvent.CLUSTER_CM_CLUSTER_S
 import static com.sequenceiq.cloudbreak.event.ResourceEvent.CLUSTER_CM_CLUSTER_SERVICES_STARTING;
 import static com.sequenceiq.cloudbreak.event.ResourceEvent.CLUSTER_CM_UPDATED_REMOTE_DATA_CONTEXT;
 import static com.sequenceiq.cloudbreak.event.ResourceEvent.CLUSTER_CM_UPDATING_REMOTE_DATA_CONTEXT;
-import static com.sequenceiq.cloudbreak.polling.PollingResult.isExited;
 
 import java.math.BigDecimal;
 import java.util.Collection;
@@ -834,7 +833,7 @@ public class ClouderaManagerModificationService implements ClusterModificationSe
     private void startAgents() {
         LOGGER.debug("Starting Cloudera Manager agents on the hosts.");
         PollingResult hostsJoinedResult = clouderaManagerPollingServiceProvider.startPollingCmHostStatus(stack, apiClient);
-        if (isExited(hostsJoinedResult)) {
+        if (hostsJoinedResult.isExited()) {
             throw new CancellationException("Cluster was terminated while starting Cloudera Manager agents.");
         }
     }

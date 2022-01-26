@@ -411,9 +411,9 @@ public class ClouderaManagerSecurityService implements ClusterSecurityService {
                     .map(bre -> new Json((String) bre.getResponse()).getSilent(ApiCommand.class).getId())
                     .collect(Collectors.toList());
             PollingResult pollingResult = clouderaManagerPollingServiceProvider.startPollingCommandList(stack, client, ids, "Rotate host certificates");
-            if (PollingResult.isExited(pollingResult)) {
+            if (pollingResult.isExited()) {
                 throw new CancellationException("Cluster was terminated during rotation of host certificates");
-            } else if (PollingResult.isTimeout(pollingResult)) {
+            } else if (pollingResult.isTimeout()) {
                 throw new ClouderaManagerOperationFailedException("Timeout while Cloudera Manager rotates the host certificates.");
             }
         } else {

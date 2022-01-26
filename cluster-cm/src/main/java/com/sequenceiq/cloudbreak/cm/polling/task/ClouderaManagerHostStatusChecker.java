@@ -2,6 +2,7 @@ package com.sequenceiq.cloudbreak.cm.polling.task;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.CollectionUtils;
@@ -29,6 +30,8 @@ public class ClouderaManagerHostStatusChecker extends AbstractClouderaManagerCom
 
     private final List<String> targets;
 
+    private Set<String> notKnownInstanceIds;
+
     public ClouderaManagerHostStatusChecker(ClouderaManagerApiPojoFactory clouderaManagerApiPojoFactory,
             ClusterEventService clusterEventService, List<String> targets) {
         super(clouderaManagerApiPojoFactory, clusterEventService);
@@ -44,11 +47,19 @@ public class ClouderaManagerHostStatusChecker extends AbstractClouderaManagerCom
     }
 
     @Override
+    public Set<String> errorPayload() {
+        return notKnownInstanceIds;
+    }
+
+    @Override
     protected boolean doStatusCheck(ClouderaManagerCommandPollerObject pollerObject, CommandsResourceApi commandsResourceApi) throws ApiException {
         List<String> hostIpsFromManager = fetchHeartbeatedHostIpsFromManager(pollerObject);
         List<InstanceMetaData> notKnownInstancesByManager = collectNotKnownInstancesByManager(pollerObject, hostIpsFromManager);
         if (!notKnownInstancesByManager.isEmpty()) {
             LOGGER.warn("there are missing nodes from cloudera manager, not known instances: {}", notKnownInstancesByManager);
+            notKnownInstanceIds = notKnownInstancesByManager.stream()
+                    .map(InstanceMetaData::getInstanceId)
+                    .collect(Collectors.toSet());
             return false;
         } else {
             return true;

@@ -656,6 +656,7 @@ class ClouderaManagerModificationServiceTest {
         when(mgmtServiceResourceApi.listActiveCommands("SUMMARY")).thenReturn(apiCommandList);
         when(mgmtServiceResourceApi.restartCommand()).thenReturn(new ApiCommand().id(apiCommandId));
         when(clouderaManagerPollingServiceProvider.startPollingCmServicesRestart(stack, apiClientMock, apiCommandId)).thenReturn(successPollingResult);
+        when(clouderaManagerPollingServiceProvider.startPollingCmHostStatus(stack, apiClientMock)).thenReturn(successPollingResult);
 
         Set<ClusterComponent> clusterComponents = TestUtil.clusterComponentSet(cluster);
         Set<ClusterComponent> clusterComponentsNoCDH = clusterComponents.stream().filter(clusterComponent -> !clusterComponent.getName().equals("CDH"))
@@ -705,6 +706,7 @@ class ClouderaManagerModificationServiceTest {
         when(clustersResourceApi.listActiveCommands(stack.getName(), "SUMMARY")).thenReturn(new ApiCommandList().items(List.of()));
         when(clustersResourceApi.restartCommand(eq(stack.getName()), any(ApiRestartClusterArgs.class))).thenReturn(new ApiCommand().id(apiCommandId));
         when(clouderaManagerPollingServiceProvider.startPollingCmServicesRestart(stack, apiClientMock, apiCommandId)).thenReturn(successPollingResult);
+        when(clouderaManagerPollingServiceProvider.startPollingCmHostStatus(stack, apiClientMock)).thenReturn(successPollingResult);
 
         underTest.upgradeClusterRuntime(cluster.getComponents(), true, Optional.empty());
 
@@ -773,6 +775,7 @@ class ClouderaManagerModificationServiceTest {
         when(clustersResourceApi.listActiveCommands(stack.getName(), "SUMMARY")).thenReturn(new ApiCommandList().items(List.of()));
         when(clustersResourceApi.restartCommand(eq(stack.getName()), any(ApiRestartClusterArgs.class))).thenReturn(new ApiCommand().id(apiCommandId));
         when(clouderaManagerPollingServiceProvider.startPollingCmServicesRestart(stack, apiClientMock, apiCommandId)).thenReturn(successPollingResult);
+        when(clouderaManagerPollingServiceProvider.startPollingCmHostStatus(stack, apiClientMock)).thenReturn(successPollingResult);
 
         when(clouderaManagerApiClientProvider.getV45Client(any(), any(), any(), any())).thenReturn(apiClientMock);
 
@@ -852,6 +855,7 @@ class ClouderaManagerModificationServiceTest {
         when(clustersResourceApi.listActiveCommands(stack.getName(), "SUMMARY")).thenReturn(new ApiCommandList().items(
                 List.of(new ApiCommand().id(apiCommandId).name("Restart"))));
         when(clouderaManagerPollingServiceProvider.startPollingCmServicesRestart(stack, apiClientMock, apiCommandId)).thenReturn(successPollingResult);
+        when(clouderaManagerPollingServiceProvider.startPollingCmHostStatus(stack, apiClientMock)).thenReturn(successPollingResult);
 
         when(clouderaManagerApiClientProvider.getV45Client(any(), any(), any(), any())).thenReturn(apiClientMock);
 
@@ -926,6 +930,8 @@ class ClouderaManagerModificationServiceTest {
         when(clouderaManagerPollingServiceProvider.startPollingCmClientConfigDeployment(stack, apiClientMock, apiCommandId))
                 .thenReturn(successPollingResult);
         when(clouderaManagerPollingServiceProvider.startPollingCmConfigurationRefresh(stack, apiClientMock, apiCommandId))
+                .thenReturn(successPollingResult);
+        when(clouderaManagerPollingServiceProvider.startPollingCmHostStatus(stack, apiClientMock))
                 .thenReturn(successPollingResult);
 
         underTest.upgradeClusterRuntime(cluster.getComponents(), false, Optional.empty());

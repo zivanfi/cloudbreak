@@ -305,10 +305,13 @@ public class ClouderaManagerSecurityServiceTest {
         BatchResourceApi batchResourceApi = mock(BatchResourceApi.class);
         when(clouderaManagerApiFactory.getHostsResourceApi(apiClient)).thenReturn(hostsResourceApi);
         when(clouderaManagerApiFactory.getBatchResourceApi(apiClient)).thenReturn(batchResourceApi);
+
         ApiHostList hostList = createApiHostList();
         when(hostsResourceApi.readHosts(null, null, "SUMMARY")).thenReturn(hostList);
         ArgumentCaptor<ApiBatchRequest> batchRequestArgumentCaptor = ArgumentCaptor.forClass(ApiBatchRequest.class);
         when(batchResourceApi.execute(batchRequestArgumentCaptor.capture())).thenReturn(createApiBatchResponse(hostList, true));
+        when(clouderaManagerPollingServiceProvider.startPollingCommandList(eq(stack), eq(apiClient), any(List.class), eq("Rotate host certificates")))
+                .thenReturn(PollingResult.SUCCESS);
         // WHEN
         underTest.rotateHostCertificates(null, null, subAltName);
         // THEN no exception

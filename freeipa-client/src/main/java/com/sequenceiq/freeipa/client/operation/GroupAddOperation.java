@@ -1,6 +1,7 @@
 package com.sequenceiq.freeipa.client.operation;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 
@@ -17,17 +18,24 @@ public class GroupAddOperation extends AbstractFreeipaOperation<Group> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GroupAddOperation.class);
 
+    private static final boolean POSIX_GROUP = false;
+
+    private static final boolean NON_POSIX_GROUP = true;
+
     private String group;
 
     private BiConsumer<String, String> warnings;
 
-    private GroupAddOperation(String group, BiConsumer<String, String> warnings) {
+    private boolean nonPosix;
+
+    private GroupAddOperation(String group, boolean nonPosix, BiConsumer<String, String> warnings) {
         this.group = group;
         this.warnings = warnings;
+        this.nonPosix = nonPosix;
     }
 
-    public static GroupAddOperation create(String group, BiConsumer<String, String> warnings) {
-        return new GroupAddOperation(group, warnings);
+    public static GroupAddOperation create(String group, boolean nonPosix, BiConsumer<String, String> warnings) {
+        return new GroupAddOperation(group, nonPosix, warnings);
     }
 
     @Override
@@ -38,6 +46,16 @@ public class GroupAddOperation extends AbstractFreeipaOperation<Group> {
     @Override
     protected List<Object> getFlags() {
         return List.of(group);
+    }
+
+    @Override
+    protected Map<String, Object> getParams() {
+        if (nonPosix) {
+            return Map.of(
+                    "nonposix", true);
+        } else {
+            return Map.of();
+        }
     }
 
     @Override

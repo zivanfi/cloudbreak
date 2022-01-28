@@ -2,6 +2,7 @@ package com.sequenceiq.freeipa.client.operation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
@@ -13,6 +14,7 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -28,6 +30,10 @@ public class GroupAddOperationTest {
 
     private static final String GROUP_NAME = "group";
 
+    private static final boolean POSIX = false;
+
+    private static final boolean NONPOSIX = true;
+
     @Mock
     private FreeIpaClient freeIpaClient;
 
@@ -35,7 +41,7 @@ public class GroupAddOperationTest {
     public void testInvokeWhenGroupProtected() {
         Map warnings = Maps.newHashMap();
         assertThrows(FreeIpaClientException.class, () ->
-                GroupAddOperation.create("admins", warnings::put).invoke(freeIpaClient));
+                GroupAddOperation.create("admins", POSIX, warnings::put).invoke(freeIpaClient));
         verifyNoInteractions(freeIpaClient);
     }
 
@@ -47,7 +53,7 @@ public class GroupAddOperationTest {
 
         when(freeIpaClient.invoke(any(), anyList(), any(), any())).thenReturn(rpcResponse);
 
-        GroupAddOperation.create(GROUP_NAME, warnings::put).invoke(freeIpaClient);
+        GroupAddOperation.create(GROUP_NAME, POSIX, warnings::put).invoke(freeIpaClient);
 
         verify(freeIpaClient).invoke(eq("group_add"), anyList(), any(), any());
     }
@@ -59,7 +65,7 @@ public class GroupAddOperationTest {
         when(freeIpaClient.invoke(any(), anyList(), any(), any())).thenThrow(
                 new FreeIpaClientException("error", new JsonRpcClientException(4002, "", null)));
 
-        GroupAddOperation.create(GROUP_NAME, warnings::put).invoke(freeIpaClient);
+        GroupAddOperation.create(GROUP_NAME, POSIX, warnings::put).invoke(freeIpaClient);
 
         verify(freeIpaClient).invoke(eq("group_add"), anyList(), any(), any());
         assertEquals(0, warnings.size());
@@ -72,10 +78,42 @@ public class GroupAddOperationTest {
         when(freeIpaClient.invoke(any(), anyList(), any(), any())).thenThrow(
                 new FreeIpaClientException("error", new JsonRpcClientException(5000, "", null)));
 
-        GroupAddOperation.create(GROUP_NAME, warnings::put).invoke(freeIpaClient);
+        GroupAddOperation.create(GROUP_NAME, POSIX, warnings::put).invoke(freeIpaClient);
 
         verify(freeIpaClient).invoke(eq("group_add"), anyList(), any(), any());
         assertEquals(1, warnings.size());
     }
 
+    @Test
+    public void testInvokePosix() throws FreeIpaClientException {
+        Map warnings = Maps.newHashMap();
+        RPCResponse<Object> rpcResponse = new RPCResponse<>();
+        rpcResponse.setResult(new Group());
+
+        when(freeIpaClient.invoke(any(), anyList(), any(), any())).thenReturn(rpcResponse);
+
+        GroupAddOperation.create(GROUP_NAME, POSIX, warnings::put).invoke(freeIpaClient);
+
+        ArgumentCaptor<Map<String, Object>> paramCaptor = ArgumentCaptor.forClass(Map.class);
+        verify(freeIpaClient).invoke(eq("group_add"), anyList(), paramCaptor.capture(), any());
+        Map<String, Object> params = paramCaptor.getValue();
+        assertTrue(!params.containsKey("nonposix"));
+    }
+
+    @Test
+    public void testInvokeNonPosix() throws FreeIpaClientException {
+        Map warnings = Maps.newHashMap();
+        RPCResponse<Object> rpcResponse = new RPCResponse<>();
+        rpcResponse.setResult(new Group());
+
+        when(freeIpaClient.invoke(any(), anyList(), any(), any())).thenReturn(rpcResponse);
+
+        GroupAddOperation.create(GROUP_NAME, NONPOSIX, warnings::put).invoke(freeIpaClient);
+
+        ArgumentCaptor<Map<String, Object>> paramCaptor = ArgumentCaptor.forClass(Map.class);
+        verify(freeIpaClient).invoke(eq("group_add"), anyList(), paramCaptor.capture(), any());
+        Map<String, Object> params = paramCaptor.getValue();
+        assertTrue(params.containsKey("nonposix"));
+        assertTrue((Boolean) params.get("nonposix"));
+    }
 }

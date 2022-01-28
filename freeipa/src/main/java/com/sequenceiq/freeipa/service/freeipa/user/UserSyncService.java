@@ -550,12 +550,25 @@ public class UserSyncService {
 
     void addGroups(boolean fmsToFreeipaBatchCallEnabled, FreeIpaClient freeIpaClient, Set<FmsGroup> fmsGroups,
             BiConsumer<String, String> warnings) throws FreeIpaClientException {
-        List<GroupAddOperation> operations = Lists.newArrayList();
+        List<GroupAddOperation> posixOperations = Lists.newArrayList();
+        List<GroupAddOperation> nonPosixOperations = Lists.newArrayList();
         for (FmsGroup fmsGroup : fmsGroups) {
-            operations.add(GroupAddOperation.create(fmsGroup.getName(), warnings));
+            String groupName = fmsGroup.getName();
+            // batch calls that contain both posix and non-posix groups only created the posix groups
+            if (isNonPosixGroup(groupName)) {
+                nonPosixOperations.add(GroupAddOperation.create(groupName, isNonPosixGroup(groupName), warnings));
+            } else {
+                posixOperations.add(GroupAddOperation.create(groupName, isNonPosixGroup(groupName), warnings));
+            }
         }
-        invokeOperation(operations, fmsToFreeipaBatchCallEnabled, freeIpaClient, warnings,
+        invokeOperation(posixOperations, fmsToFreeipaBatchCallEnabled, freeIpaClient, warnings,
                 Set.of(FreeIpaErrorCodes.DUPLICATE_ENTRY), false);
+        invokeOperation(nonPosixOperations, fmsToFreeipaBatchCallEnabled, freeIpaClient, warnings,
+                Set.of(FreeIpaErrorCodes.DUPLICATE_ENTRY), false);
+    }
+
+    private boolean isNonPosixGroup(String groupName) {
+        return UserSyncConstants.NON_POSIX_GROUPS.contains(groupName);
     }
 
     void addUsers(boolean fmsToFreeipaBatchCallEnabled, FreeIpaClient freeIpaClient, Set<FmsUser> fmsUsers,

@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -28,7 +27,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.sequenceiq.cloudbreak.api.endpoint.v4.autoscales.base.ScalingStrategy;
 import com.sequenceiq.cloudbreak.api.endpoint.v4.autoscales.request.InstanceGroupAdjustmentV4Request;
 import com.sequenceiq.cloudbreak.api.endpoint.v4.autoscales.request.UpdateStackV4Request;
-import com.sequenceiq.cloudbreak.api.endpoint.v4.common.DetailedStackStatus;
 import com.sequenceiq.cloudbreak.api.endpoint.v4.common.StackType;
 import com.sequenceiq.cloudbreak.api.endpoint.v4.dto.NameOrCrn;
 import com.sequenceiq.cloudbreak.api.endpoint.v4.stacks.base.StatusRequest;
@@ -44,7 +42,6 @@ import com.sequenceiq.cloudbreak.controller.validation.network.MultiAzValidator;
 import com.sequenceiq.cloudbreak.converter.v4.stacks.StackScaleV4RequestToUpdateStackV4RequestConverter;
 import com.sequenceiq.cloudbreak.domain.ImageCatalog;
 import com.sequenceiq.cloudbreak.domain.stack.Stack;
-import com.sequenceiq.cloudbreak.service.cluster.ClusterService;
 import com.sequenceiq.cloudbreak.service.image.ImageCatalogService;
 import com.sequenceiq.cloudbreak.service.image.ImageChangeDto;
 import com.sequenceiq.cloudbreak.service.stack.CloudParameterCache;
@@ -53,9 +50,9 @@ import com.sequenceiq.cloudbreak.service.stack.flow.StackOperationService;
 import com.sequenceiq.cloudbreak.service.user.UserService;
 import com.sequenceiq.cloudbreak.structuredevent.CloudbreakRestRequestThreadLocalService;
 import com.sequenceiq.cloudbreak.structuredevent.event.CloudbreakEventService;
+import com.sequenceiq.cloudbreak.util.StackUtil;
 import com.sequenceiq.flow.api.model.FlowIdentifier;
 import com.sequenceiq.flow.api.model.FlowType;
-import com.sequenceiq.flow.service.FlowCancelService;
 
 @ExtendWith(MockitoExtension.class)
 class StackCommonServiceTest {
@@ -105,13 +102,7 @@ class StackCommonServiceTest {
     private ScalingHardLimitsService scalingHardLimitsService;
 
     @Mock
-    private FlowCancelService flowCancelService;
-
-    @Mock
-    private ClusterService clusterService;
-
-    @Mock
-    private StackUpdater stackUpdater;
+    private StackUtil stackUtil;
 
     @InjectMocks
     private StackCommonService underTest;
@@ -218,21 +209,6 @@ class StackCommonServiceTest {
     }
 
     @Test
-    public void testCancelInWorkspace() {
-        when(stackService.getIdByNameOrCrnInWorkspace(STACK_NAME, WORKSPACE_ID)).thenReturn(1L);
-        doNothing().when(flowCancelService).cancelRunningFlows(1L);
-
-        underTest.cancelInWorkspace(STACK_NAME, WORKSPACE_ID);
-
-        verify(stackService).getIdByNameOrCrnInWorkspace(STACK_NAME, WORKSPACE_ID);
-        verify(flowCancelService).cancelRunningFlows(1L);
-        verify(clusterService).updateClusterStatusByStackId(1L, DetailedStackStatus.AVAILABLE,
-                "fake update after cancelling the running flows");
-        verify(stackUpdater).updateStackStatus(1L, DetailedStackStatus.AVAILABLE,
-                "fake update after cancelling the running flows");
-    }
-
-    @Test
     public void testStartInstancesInDefaultWorkspace() {
         Stack stack = new Stack();
         stack.setType(StackType.WORKLOAD);
@@ -242,6 +218,7 @@ class StackCommonServiceTest {
         CloudbreakUser cloudbreakUser = mock(CloudbreakUser.class);
         when(cloudbreakUser.getUserCrn()).thenReturn("crn:cdp:" + Crn.Service.AUTOSCALE.getName() + ":us-west-1:altus:user:__internal__actor__");
         when(restRequestThreadLocalService.getCloudbreakUser()).thenReturn(cloudbreakUser);
+        when(stackUtil.stopStartScalingEntitlementEnabled(stack)).thenReturn(true);
 
         UpdateStackV4Request updateStackV4Request = new UpdateStackV4Request();
         updateStackV4Request.setWithClusterEvent(true);

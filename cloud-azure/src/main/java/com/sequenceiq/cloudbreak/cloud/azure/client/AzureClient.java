@@ -56,6 +56,8 @@ import com.microsoft.azure.management.compute.implementation.DiskInner;
 import com.microsoft.azure.management.graphrbac.RoleAssignment;
 import com.microsoft.azure.management.graphrbac.RoleAssignments;
 import com.microsoft.azure.management.graphrbac.implementation.RoleAssignmentInner;
+import com.microsoft.azure.management.keyvault.AccessPolicy;
+import com.microsoft.azure.management.keyvault.AccessPolicyEntry;
 import com.microsoft.azure.management.keyvault.KeyPermissions;
 import com.microsoft.azure.management.keyvault.Vault;
 import com.microsoft.azure.management.marketplaceordering.v2015_06_01.AgreementTerms;
@@ -1004,6 +1006,32 @@ public class AzureClient {
                     .attach()
                     .apply();
         });
+    }
+
+    public boolean checkKeyVaultAccessPolicyForServicePrincipal(String resourceGroupName, String vaultName, String principalObjectId) {
+        return handleAuthException(() -> {
+            List<AccessPolicy> accessPolicies = azure.vaults()
+                    .getByResourceGroup(resourceGroupName, vaultName)
+                    .accessPolicies();
+            if (accessPolicies != null) {
+                for (int i = accessPolicies.size() - 1; i >= 0; i--) {
+                    AccessPolicyEntry accessPolicyEntry = accessPolicies.get(i).inner();
+                    if (checkKeyVaultAccessPolicyListForServicePrincipal(accessPolicyEntry, principalObjectId)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        });
+    }
+
+    @VisibleForTesting
+    public boolean checkKeyVaultAccessPolicyListForServicePrincipal(AccessPolicyEntry accessPolicyEntry, String principalObjectId) {
+        if (principalObjectId.equals(accessPolicyEntry.objectId())) {
+            return accessPolicyEntry.permissions().keys()
+                    .containsAll(List.of(KeyPermissions.WRAP_KEY, KeyPermissions.UNWRAP_KEY, KeyPermissions.GET));
+        }
+        return false;
     }
 
     public void removeKeyVaultAccessPolicyFromServicePrincipal(String resourceGroupName, String vaultName, String principalObjectId) {

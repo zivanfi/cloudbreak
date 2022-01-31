@@ -1,6 +1,8 @@
 package com.sequenceiq.cloudbreak.cloud.azure.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -9,7 +11,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Constructor;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.Assert;
@@ -31,6 +35,9 @@ import com.microsoft.azure.management.compute.Encryption;
 import com.microsoft.azure.management.compute.VirtualMachine;
 import com.microsoft.azure.management.compute.implementation.DiskInner;
 import com.microsoft.azure.management.compute.implementation.VirtualMachineInner;
+import com.microsoft.azure.management.keyvault.AccessPolicyEntry;
+import com.microsoft.azure.management.keyvault.KeyPermissions;
+import com.microsoft.azure.management.keyvault.Permissions;
 import com.microsoft.azure.management.resources.fluentcore.model.implementation.IndexableRefreshableWrapperImpl;
 import com.sequenceiq.cloudbreak.cloud.azure.util.AzureAuthExceptionHandler;
 
@@ -175,6 +182,30 @@ class AzureClientTest {
         underTest.attachDiskToVm(disk, virtualMachine);
         verify(virtualMachineUpdate, times(1)).withDataDiskDefaultCachingType(captor.capture());
         Assert.assertEquals(CachingTypes.READ_ONLY, captor.getValue());
+    }
+
+    @Test
+    public void testKeyVaultAccessPolicyListForServicePrincipal() {
+        List<AccessPolicyEntry> accessPolicyEntries = new ArrayList<AccessPolicyEntry>();
+        accessPolicyEntries.add(getAccessPolicyEntry("100", List.of(KeyPermissions.WRAP_KEY, KeyPermissions.UNWRAP_KEY, KeyPermissions.GET)));
+        accessPolicyEntries.add(getAccessPolicyEntry("200", List.of(KeyPermissions.UNWRAP_KEY, KeyPermissions.GET)));
+        accessPolicyEntries.add(getAccessPolicyEntry("300", List.of(KeyPermissions.WRAP_KEY, KeyPermissions.GET)));
+        accessPolicyEntries.add(getAccessPolicyEntry("400", List.of(KeyPermissions.WRAP_KEY, KeyPermissions.UNWRAP_KEY)));
+
+        assertTrue(underTest.checkKeyVaultAccessPolicyListForServicePrincipal(accessPolicyEntries.get(0), "100"));
+        assertFalse(underTest.checkKeyVaultAccessPolicyListForServicePrincipal(accessPolicyEntries.get(1), "200"));
+        assertFalse(underTest.checkKeyVaultAccessPolicyListForServicePrincipal(accessPolicyEntries.get(2), "300"));
+        assertFalse(underTest.checkKeyVaultAccessPolicyListForServicePrincipal(accessPolicyEntries.get(3), "400"));
+        assertFalse(underTest.checkKeyVaultAccessPolicyListForServicePrincipal(accessPolicyEntries.get(3), "dummy"));
+    }
+
+    private AccessPolicyEntry getAccessPolicyEntry(String objectId, List<KeyPermissions> keys) {
+        AccessPolicyEntry accessPolicyEntry = new AccessPolicyEntry();
+        Permissions permissions = new Permissions();
+        permissions.withKeys(keys);
+        accessPolicyEntry.withObjectId(objectId);
+        accessPolicyEntry.withPermissions(permissions);
+        return accessPolicyEntry;
     }
 
 }

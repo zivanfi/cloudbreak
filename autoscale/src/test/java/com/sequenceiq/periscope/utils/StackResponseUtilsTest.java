@@ -48,6 +48,14 @@ public class StackResponseUtilsTest {
     }
 
     @Test
+    public void testGetStoppedInstanceCountInHostGroup() {
+        String hostGroup = "compute";
+
+        Integer stoppedInstanceCount = underTest.getStoppedInstanceCountInHostGroup(getMockStackV4Response(hostGroup, true), hostGroup);
+        assertEquals("Stopped instance count should match", Integer.valueOf(1), stoppedInstanceCount);
+    }
+
+    @Test
     public void testGetNodeCountForHostGroup() {
         String hostGroup = "compute";
 
